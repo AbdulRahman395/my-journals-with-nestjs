@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, NotFoundException, InternalServerErrorException, Logger } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException, InternalServerErrorException, Logger, GoneException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
@@ -93,5 +93,57 @@ export class UsersService {
 
   async findAll(): Promise<User[]> {
     return this.usersRepository.find();
+  }
+
+  /**
+   * Verifies a user's account using the provided OTP
+   * @param email - User's email address
+   * @param otp - 6-digit OTP code
+   * @returns Object with success status and message
+   */
+  async verifyAccount(email: string, otp: string): Promise<{ success: boolean; message: string }> {
+    // Find the user by email
+    const user = await this.findByEmail(email);
+    if (!user) {
+      this.logger.warn(`Verify account attempt with non-existent email: ${email}`);
+      throw new NotFoundException('User not found');
+    }
+
+    // Find the OTP record
+    const otpRecord = await this.otpService.getOtpByUserAndCode(user.id, otp);
+    if (!otpRecord) {
+      this.logger.warn(`Invalid OTP attempt for user: ${email}`);
+      throw new NotFoundException('Invalid or expired OTP');
+    }
+
+    // Check if OTP is already used
+    if (otpRecord.isUsed) {
+      this.logger.warn(`Attempt to use already used OTP for user: ${email}`);
+      throw new ConflictException('This OTP has already been used');
+    }
+
+    // Check if OTP is expired
+    if (new Date() > otpRecord.expiresAt) {
+      this.logger.warn(`Expired OTP attempt for user: ${email}`);
+      throw new ConflictException('OTP has expired');
+    }
+
+    try {
+      // Mark OTP as used
+      await this.otpService.markOtpAsUsed(otp);
+      
+      // Update user's email verification status
+      await this.usersRepository.update(user.id, { isEmailVerified: true });
+      
+      this.logger.log(`Account verified successfully for user: ${email}`);
+      
+      return {
+        success: true,
+        message: 'Account verified successfully. Please login to continue.'
+      };
+    } catch (error) {
+      this.logger.error(`Error verifying account for ${email}:`, error);
+      throw new InternalServerErrorException('Failed to verify account. Please try again.');
+    }
   }
 }

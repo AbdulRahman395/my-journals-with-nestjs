@@ -49,4 +49,20 @@ export class OtpService {
       { isUsed: true }
     );
   }
+
+  /**
+   * Finds an OTP record by user ID and OTP code
+   * @param userId - The ID of the user
+   * @param otp - The OTP code
+   * @returns The OTP record if found, null otherwise
+   */
+  async getOtpByUserAndCode(userId: string, otp: string): Promise<OTP | null> {
+    return this.otpRepository
+      .createQueryBuilder('otp')
+      .where('otp.userId = :userId', { userId })
+      .andWhere('otp.otp = :otp', { otp })
+      .andWhere('otp.isUsed = :isUsed', { isUsed: false })
+      .andWhere('otp.expiresAt > :currentTime', { currentTime: new Date() })
+      .getOne();
+  }
 }

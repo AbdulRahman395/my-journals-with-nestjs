@@ -63,6 +63,7 @@ export default async function handler(req: Request, res: Response) {
  */
 if (!process.env.VERCEL) {
   createServer().then(() => {
+    server.listen(3000);
     console.log('🚀 Local server ready');
   });
 }
