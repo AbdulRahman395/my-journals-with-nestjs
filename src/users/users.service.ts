@@ -5,6 +5,7 @@ import { User } from './entities/user.entity';
 import { OtpService } from './otp.service';
 import { MailService } from '../mail/mail.service';
 import { sendAccountVerificationEmail } from '../mail/templates/email.templates';
+import { PasswordUtils } from '../common/utils/password.utils';
 
 import { CreateUserDto } from './users.controller';
 
@@ -29,8 +30,14 @@ export class UsersService {
       throw new ConflictException('User with this email already exists');
     }
 
-    // Create user
-    const user = this.usersRepository.create(createUserDto);
+    // Hash the password before saving
+    const hashedPassword = await PasswordUtils.hashPassword(createUserDto.passwordHash);
+    
+    // Create user with hashed password
+    const user = this.usersRepository.create({
+      ...createUserDto,
+      passwordHash: hashedPassword
+    });
     const savedUser = await this.usersRepository.save(user);
 
     try {
@@ -93,6 +100,31 @@ export class UsersService {
 
   async findAll(): Promise<User[]> {
     return this.usersRepository.find();
+  }
+
+  /**
+   * Validates a user's credentials
+   * @param email - User's email
+   * @param password - Plain text password
+   * @returns The user if credentials are valid, null otherwise
+   */
+  async validateUser(email: string, password: string): Promise<User | null> {
+    const user = await this.findByEmail(email);
+    
+    if (!user) {
+      return null;
+    }
+
+    const isPasswordValid = await PasswordUtils.comparePasswords(
+      password,
+      user.passwordHash
+    );
+
+    if (!isPasswordValid) {
+      return null;
+    }
+
+    return user;
   }
 
   /**
