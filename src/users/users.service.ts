@@ -98,6 +98,21 @@ export class UsersService {
     return this.usersRepository.findOne({ where: { email } });
   }
 
+  async verifyOtp(userId: string, otp: string): Promise<boolean> {
+    return this.otpService.validateOTP(userId, otp);
+  }
+
+  async updatePassword(userId: string, hashedPassword: string): Promise<void> {
+    await this.usersRepository.update(userId, { 
+      passwordHash: hashedPassword,
+      updatedAt: new Date()
+    });
+  }
+
+  async markOtpAsUsed(otp: string): Promise<void> {
+    await this.otpService.markOtpAsUsed(otp);
+  }
+
   /**
    * Generate a password reset OTP for a user
    */

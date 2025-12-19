@@ -1,10 +1,12 @@
-import { Injectable, UnauthorizedException, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, UnauthorizedException, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
 import { LoginDto, LoginResponseDto } from './dto/login.dto';
 import { ForgotPasswordResponseDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto, ResetPasswordResponseDto } from './dto/reset-password.dto';
 import { sendPasswordResetEmail } from '../mail/templates/email.templates';
+import { PasswordUtils } from '../common/utils/password.utils';
 
 @Injectable()
 export class AuthService {
@@ -114,6 +116,51 @@ export class AuthService {
     } catch (error) {
       this.logger.error('Error in forgotPassword:', error);
       throw new Error('Failed to process password reset request');
+    }
+  }
+
+  async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<ResetPasswordResponseDto> {
+    const { email, otp, newPassword } = resetPasswordDto;
+    this.logger.log(`Processing password reset for email: ${email}`);
+
+    try {
+      // Find user by email
+      const user = await this.usersService.findByEmail(email);
+      if (!user) {
+        this.logger.log(`No user found with email: ${email}`);
+        return {
+          success: false,
+          message: 'Invalid or expired OTP',
+        };
+      }
+
+      // Verify OTP
+      this.logger.log(`Verifying OTP for user: ${user.id}`);
+      const isOtpValid = await this.usersService.verifyOtp(user.id, otp);
+      if (!isOtpValid) {
+        this.logger.log(`Invalid OTP for user: ${user.id}`);
+        return {
+          success: false,
+          message: 'Invalid or expired OTP',
+        };
+      }
+
+      // Update password
+      this.logger.log(`Updating password for user: ${user.id}`);
+      const hashedPassword = await PasswordUtils.hashPassword(newPassword);
+      await this.usersService.updatePassword(user.id, hashedPassword);
+
+      // Mark OTP as used
+      await this.usersService.markOtpAsUsed(otp);
+      this.logger.log(`Password updated successfully for user: ${user.id}`);
+
+      return {
+        success: true,
+        message: 'Password has been reset successfully',
+      };
+    } catch (error) {
+      this.logger.error('Error in resetPassword:', error);
+      throw new BadRequestException('Failed to reset password');
     }
   }
 }

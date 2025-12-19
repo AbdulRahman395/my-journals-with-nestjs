@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto, LoginResponseDto } from './dto/login.dto';
 import { ForgotPasswordDto, ForgotPasswordResponseDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto, ResetPasswordResponseDto } from './dto/reset-password.dto';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -46,5 +47,27 @@ export class AuthController {
     @Body() forgotPasswordDto: ForgotPasswordDto,
   ): Promise<ForgotPasswordResponseDto> {
     return this.authService.forgotPassword(forgotPasswordDto.email);
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ 
+    summary: 'Reset password', 
+    description: 'Reset password using OTP' 
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Password has been reset successfully',
+    type: ResetPasswordResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid or expired OTP',
+  })
+  @ApiBody({ type: ResetPasswordDto })
+  async resetPassword(
+    @Body() resetPasswordDto: ResetPasswordDto,
+  ): Promise<ResetPasswordResponseDto> {
+    return this.authService.resetPassword(resetPasswordDto);
   }
 }

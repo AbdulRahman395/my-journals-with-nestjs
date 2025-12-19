@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThan } from 'typeorm';
 import { OTP } from './entities/otp.entity';
 import { User } from './entities/user.entity';
 
@@ -30,17 +30,28 @@ export class OtpService {
     return otp;
   }
 
-  async validateOTP(userId: string, otp: string): Promise<boolean> {
-    const validOtp = await this.otpRepository.findOne({
-      where: {
-        userId,
-        otp,
-        isUsed: false,
-        expiresAt: new Date(), // Only not expired
-      },
-    });
+  private readonly logger = new Logger(OtpService.name);
 
-    return !!validOtp;
+  async validateOTP(userId: string, otp: string): Promise<boolean> {
+    try {
+      const currentTime = new Date();
+      this.logger.log(`Validating OTP for user ${userId} at ${currentTime}`);
+      
+      const validOtp = await this.otpRepository.findOne({
+        where: {
+          userId,
+          otp,
+          isUsed: false,
+          expiresAt: MoreThan(currentTime), // Only not expired
+        },
+      });
+
+      this.logger.log(`OTP validation result: ${!!validOtp}`);
+      return !!validOtp;
+    } catch (error) {
+      this.logger.error('Error validating OTP:', error);
+      return false;
+    }
   }
 
   async markOtpAsUsed(otp: string): Promise<void> {
