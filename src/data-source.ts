@@ -1,6 +1,7 @@
 import { DataSource, DataSourceOptions } from 'typeorm';
 import * as dotenv from 'dotenv';
 import { User } from './users/entities/user.entity';
+import { OTP } from './users/entities/otp.entity';
 
 dotenv.config();
 
@@ -21,7 +22,7 @@ export const dataSourceOptions: DataSourceOptions = {
       sslmode: 'require', // Required for Neon
     },
   },
-  entities: [User],
+  entities: [User, OTP],
   synchronize: !isProduction,
   logging: true,
   migrations: ['dist/migrations/*.js'],
