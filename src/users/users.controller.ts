@@ -5,17 +5,26 @@ import { User } from './entities/user.entity';
 
 import { ApiProperty } from '@nestjs/swagger';
 
+import { IsString, IsEmail, IsNotEmpty, MinLength } from 'class-validator';
+
 export class CreateUserDto {
   @ApiProperty({ example: 'John Doe', description: 'Full name of the user' })
+  @IsString()
+  @IsNotEmpty()
   name: string;
 
   @ApiProperty({ example: 'user@example.com', description: 'Email address of the user' })
+  @IsEmail()
+  @IsNotEmpty()
   email: string;
 
   @ApiProperty({ 
     example: 'hashed_password_123', 
     description: 'Hashed password (use a proper hashing algorithm like bcrypt)' 
   })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(8, { message: 'Password must be at least 8 characters long' })
   passwordHash: string;
 }
 

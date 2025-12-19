@@ -6,11 +6,7 @@ import { OtpService } from './otp.service';
 import { MailService } from '../mail/mail.service';
 import { sendAccountVerificationEmail } from '../mail/templates/email.templates';
 
-export type CreateUserDto = {
-  name: string;
-  email: string;
-  passwordHash: string;
-};
+import { CreateUserDto } from './users.controller';
 
 @Injectable()
 export class UsersService {
