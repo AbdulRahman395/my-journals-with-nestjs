@@ -98,6 +98,25 @@ export class UsersService {
     return this.usersRepository.findOne({ where: { email } });
   }
 
+  /**
+   * Generate a password reset OTP for a user
+   */
+  async generatePasswordResetOtp(userId: string): Promise<string> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return this.otpService.generateOTP(user);
+  }
+
+  /**
+   * Get the mail service instance
+   * This is needed because we can't directly inject services into template functions
+   */
+  getMailService(): MailService {
+    return this.mailService;
+  }
+
   async findAll(): Promise<User[]> {
     return this.usersRepository.find();
   }
