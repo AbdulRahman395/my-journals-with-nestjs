@@ -1,6 +1,6 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddNameToUsersAndCreateOTPTable20241219000000 implements MigrationInterface {
+export default class AddNameToUsersAndCreateOTPTable1703040001000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Add name column to users table
     await queryRunner.query(`
