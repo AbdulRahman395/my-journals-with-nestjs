@@ -2,6 +2,8 @@ import { DataSource, DataSourceOptions } from 'typeorm';
 import * as dotenv from 'dotenv';
 import { User } from './users/entities/user.entity';
 import { OTP } from './users/entities/otp.entity';
+import { Journal } from './journals/entities/journal.entity';
+import { JournalMedia } from './journals/entities/journal-media.entity';
 
 dotenv.config();
 
@@ -14,15 +16,21 @@ export const dataSourceOptions: DataSourceOptions = {
   username: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  ssl: {
-    rejectUnauthorized: false, // For self-signed certificates
-  },
-  extra: {
+  ...(process.env.DB_SSL === 'true' ? {
     ssl: {
-      sslmode: 'require', // Required for Neon
+      rejectUnauthorized: false, // For self-signed certificates
     },
-  },
-  entities: [User, OTP],
+    extra: {
+      ssl: {
+        sslmode: 'require',
+      },
+    },
+  } : {
+    extra: {
+      ssl: false,
+    },
+  }),
+  entities: [User, OTP, Journal, JournalMedia],
   synchronize: !isProduction,
   logging: true,
   migrations: ['dist/migrations/*.js'],
