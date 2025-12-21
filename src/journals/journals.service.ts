@@ -8,6 +8,7 @@ import { CreateJournalDto } from './dto/create-journal.dto';
 import { UpdateJournalDto } from './dto/update-journal.dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { User } from '../users/entities/user.entity';
+import { paginate, createPaginationResponse } from '../common/utils/pagination.util';
 
 @Injectable()
 export class JournalsService {
@@ -70,12 +71,20 @@ export class JournalsService {
     }
   }
 
-  async findAll(userId: string) {
-    return this.journalRepository.find({
+  async findAll(
+    userId: string,
+    page: number = 1,
+    limit: number = 10,
+  ) {
+    const result = await paginate(this.journalRepository, {
       where: { user_id: userId },
       relations: ['media'],
       order: { journal_date: 'DESC' },
+      page,
+      limit,
     });
+
+    return createPaginationResponse(result);
   }
 
   async findOne(id: string, userId: string) {

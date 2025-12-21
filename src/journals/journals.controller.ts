@@ -11,6 +11,7 @@ import {
   UploadedFiles,
   ParseUUIDPipe,
   UnauthorizedException,
+  Query,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -49,10 +50,32 @@ export class JournalsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all journal entries for the current user' })
-  @ApiResponse({ status: 200, description: 'List of journal entries', type: [JournalResponseDto] })
-  async findAll(@CurrentUser() user: User) {
-    return this.journalsService.findAll(user.id);
+  @ApiOperation({ summary: 'Get paginated journals for the authenticated user' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Returns paginated journals for the user',
+    schema: {
+      properties: {
+        message: { type: 'string', example: 'Fetch successful' },
+        pagination: {
+          type: 'object',
+          properties: {
+            total: { type: 'number', example: 100 },
+            page: { type: 'number', example: 1 },
+            limit: { type: 'number', example: 10 },
+            totalPages: { type: 'number', example: 10 }
+          }
+        },
+        data: { type: 'array', items: { $ref: '#/components/schemas/Journal' } }
+      }
+    }
+  })
+  async findAll(
+    @CurrentUser() user: User,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+  ) {
+    return this.journalsService.findAll(user.id, Number(page), Number(limit));
   }
 
   @Get(':id')
