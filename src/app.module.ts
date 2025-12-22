@@ -51,8 +51,8 @@ export class AppModule implements NestModule {
         { path: 'api/(.*)', method: RequestMethod.ALL },
         
         // Public user registration and verification
-        { path: 'users/register', method: RequestMethod.ALL },
-        { path: 'users/verify-account', method: RequestMethod.ALL }
+        { path: 'auth/register', method: RequestMethod.ALL },
+        { path: 'auth/verify-account', method: RequestMethod.ALL }
       )
       .forRoutes('*');
   }

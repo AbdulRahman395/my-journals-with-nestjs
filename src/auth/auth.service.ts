@@ -1,23 +1,109 @@
-import { Injectable, UnauthorizedException, NotFoundException, Logger, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, NotFoundException, Logger, BadRequestException, ForbiddenException, ConflictException, InternalServerErrorException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { UsersService } from '../users/users.service';
+import { User } from '../users/entities/user.entity';
 import { LoginDto, LoginResponseDto } from './dto/login.dto';
 import { ForgotPasswordResponseDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto, ResetPasswordResponseDto } from './dto/reset-password.dto';
 import { ResendOtpResponseDto } from './dto/resend-otp.dto';
-import { sendPasswordResetEmail, sendResendOtpEmail } from '../mail/templates/email.templates';
+import { RegisterDto, RegisterResponseDto, VerifyAccountDto } from './dto/register.dto';
+import { sendPasswordResetEmail, sendResendOtpEmail, sendAccountVerificationEmail } from '../mail/templates/email.templates';
 import { PasswordUtils } from '../common/utils/password.utils';
+import { OtpService } from '../users/otp.service';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly otpService: OtpService,
+    private readonly mailService: MailService,
   ) {}
+
+  async register(registerDto: RegisterDto): Promise<RegisterResponseDto> {
+    // Check if user already exists
+    const existingUser = await this.usersRepository.findOne({
+      where: { email: registerDto.email },
+    });
+
+    if (existingUser) {
+      throw new ConflictException('User with this email already exists');
+    }
+
+    // Hash the password before saving
+    const hashedPassword = await PasswordUtils.hashPassword(registerDto.passwordHash);
+    
+    // Create user with hashed password
+    const user = this.usersRepository.create({
+      name: registerDto.name,
+      email: registerDto.email,
+      passwordHash: hashedPassword
+    });
+    
+    const savedUser = await this.usersRepository.save(user);
+
+    try {
+      // Generate OTP
+      const otp = await this.otpService.generateOTP(savedUser);
+      
+      // Send verification email
+      this.logger.log(`Sending verification email to ${savedUser.email}`);
+      const isEmailSent = await sendAccountVerificationEmail(
+        this.mailService,
+        savedUser.email,
+        otp
+      );
+
+      if (!isEmailSent) {
+        throw new InternalServerErrorException('Failed to send verification email');
+      }
+
+      return {
+        success: true,
+        message: 'Registration successful. Please check your email to verify your account.',
+        email: savedUser.email
+      };
+    } catch (error) {
+      // If email sending fails, clean up the user
+      await this.usersRepository.remove(savedUser);
+      this.logger.error('Error during registration', error);
+      throw new InternalServerErrorException('Failed to complete registration');
+    }
+  }
+
+  async verifyAccount(verifyAccountDto: VerifyAccountDto): Promise<{ success: boolean; message: string }> {
+    const { email, otp } = verifyAccountDto;
+    
+    // Find the user
+    const user = await this.usersRepository.findOne({ where: { email } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Verify OTP
+    const isValid = await this.otpService.validateOTP(user.id, otp);
+    if (!isValid) {
+      throw new BadRequestException('Invalid or expired OTP');
+    }
+
+    // Mark email as verified
+    user.isEmailVerified = true;
+    await this.usersRepository.save(user);
+
+    return {
+      success: true,
+      message: 'Account verified successfully. You can now log in.'
+    };
+  }
 
   async validateUser(email: string, password: string) {
     return this.usersService.validateUser(email, password);
