@@ -29,17 +29,30 @@ import { JwtService } from '@nestjs/jwt';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
+    // Apply JWT middleware to all routes except explicitly excluded ones
     consumer
       .apply(JwtMiddleware)
       .exclude(
+        // Public auth endpoints
         { path: 'auth/signup', method: RequestMethod.ALL },
         { path: 'auth/login', method: RequestMethod.ALL },
         { path: 'auth/refresh', method: RequestMethod.ALL },
+        { path: 'auth/forgot-password', method: RequestMethod.ALL },
+        { path: 'auth/reset-password', method: RequestMethod.ALL },
+        { path: 'auth/resend-otp', method: RequestMethod.ALL },
+        
+        // Public routes
         { path: '', method: RequestMethod.GET },
         { path: 'health', method: RequestMethod.GET },
+        
+        // Swagger documentation
         { path: 'api', method: RequestMethod.ALL },
         { path: 'api-json', method: RequestMethod.ALL },
         { path: 'api/(.*)', method: RequestMethod.ALL },
+        
+        // Public user registration and verification
+        { path: 'users/register', method: RequestMethod.ALL },
+        { path: 'users/verify-account', method: RequestMethod.ALL }
       )
       .forRoutes('*');
   }
