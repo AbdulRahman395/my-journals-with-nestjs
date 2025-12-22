@@ -25,4 +25,11 @@ export class UsersService {
   async findAll(): Promise<User[]> {
     return this.usersRepository.find();
   }
+
+  /**
+   * Validates a user's credentials
+   * @param email - User's email
+   * @param password - Plain text password
+   * @returns The user if credentials are valid, null otherwise
+   */
 }

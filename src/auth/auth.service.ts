@@ -105,8 +105,18 @@ export class AuthService {
     };
   }
 
-  async validateUser(email: string, password: string) {
-    return this.usersService.validateUser(email, password);
+  async validateUser(email: string, password: string): Promise<User | null> {
+    const user = await this.usersRepository.findOne({ where: { email } });
+    if (!user) {
+      return null;
+    }
+    
+    const isPasswordValid = await PasswordUtils.comparePasswords(password, user.passwordHash);
+    if (!isPasswordValid) {
+      return null;
+    }
+    
+    return user;
   }
 
   async login(loginDto: LoginDto): Promise<LoginResponseDto> {
@@ -123,8 +133,8 @@ export class AuthService {
     }
 
     // Validate password
-    const isValidPassword = await this.usersService.validateUser(loginDto.email, loginDto.password);
-    if (!isValidPassword) {
+    const userFromValidation = await this.validateUser(loginDto.email, loginDto.password);
+    if (!userFromValidation) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -160,7 +170,7 @@ export class AuthService {
     this.logger.log(`Processing forgot password request for email: ${email}`);
     
     try {
-      const user = await this.usersService.findByEmail(email);
+      const user = await this.usersRepository.findOne({ where: { email } });
       
       // Don't reveal if user doesn't exist for security reasons
       if (!user) {
@@ -173,7 +183,7 @@ export class AuthService {
 
       this.logger.log(`Generating OTP for user: ${user.id}`);
       // Generate OTP for password reset
-      const otp = await this.usersService.generatePasswordResetOtp(user.id);
+      const otp = await this.otpService.generateOTP(user);
       
       if (!otp) {
         throw new Error('Failed to generate OTP');
@@ -182,7 +192,7 @@ export class AuthService {
       this.logger.log(`Sending password reset email to: ${user.email}`);
       // Send password reset email
       const isEmailSent = await sendPasswordResetEmail(
-        this.usersService.getMailService(),
+        this.mailService,
         user.email,
         otp
       );
@@ -221,7 +231,7 @@ export class AuthService {
 
       this.logger.log(`Generating new OTP for user: ${user.id}`);
       // Generate new OTP
-      const otp = await this.usersService.generatePasswordResetOtp(user.id);
+      const otp = await this.otpService.generateOTP(user);
       
       if (!otp) {
         throw new BadRequestException('Failed to generate OTP');
@@ -230,7 +240,7 @@ export class AuthService {
       this.logger.log(`Sending new OTP to: ${user.email}`);
       // Send OTP email
       const isEmailSent = await sendResendOtpEmail(
-        this.usersService.getMailService(),
+        this.mailService,
         user.email,
         otp
       );
@@ -255,27 +265,56 @@ export class AuthService {
   }
 
   async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
-    await this.usersService.changePassword(userId, currentPassword, newPassword);
+    const user = await this.usersRepository.findOne({ 
+      where: { id: userId },
+      select: ['id', 'passwordHash']
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Verify current password
+    const isPasswordValid = await PasswordUtils.comparePasswords(
+      currentPassword,
+      user.passwordHash
+    );
+
+    if (!isPasswordValid) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    // Check if new password is same as current password
+    const isSamePassword = await PasswordUtils.comparePasswords(
+      newPassword,
+      user.passwordHash
+    );
+
+    if (isSamePassword) {
+      throw new BadRequestException('New password cannot be the same as current password');
+    }
+
+    // Hash and save new password
+    user.passwordHash = await PasswordUtils.hashPassword(newPassword);
+    await this.usersRepository.save(user);
   }
 
   async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<ResetPasswordResponseDto> {
     const { email, otp, newPassword } = resetPasswordDto;
-    this.logger.log(`Processing password reset for email: ${email}`);
-
+    
     try {
       // Find user by email
-      const user = await this.usersService.findByEmail(email);
+      const user = await this.usersRepository.findOne({ where: { email } });
       if (!user) {
-        this.logger.log(`No user found with email: ${email}`);
+        // Don't reveal if user doesn't exist for security reasons
         return {
-          success: false,
-          message: 'Invalid or expired OTP',
+          success: true,
+          message: 'Password has been reset successfully',
         };
       }
 
       // Verify OTP
-      this.logger.log(`Verifying OTP for user: ${user.id}`);
-      const isOtpValid = await this.usersService.verifyOtp(user.id, otp);
+      const isOtpValid = await this.otpService.validateOTP(user.id, otp);
       if (!isOtpValid) {
         this.logger.log(`Invalid OTP for user: ${user.id}`);
         return {
@@ -287,12 +326,13 @@ export class AuthService {
       // Update password
       this.logger.log(`Updating password for user: ${user.id}`);
       const hashedPassword = await PasswordUtils.hashPassword(newPassword);
-      await this.usersService.updatePassword(user.id, hashedPassword);
+      user.passwordHash = hashedPassword;
+      await this.usersRepository.save(user);
 
       // Mark OTP as used
-      await this.usersService.markOtpAsUsed(otp);
-      this.logger.log(`Password updated successfully for user: ${user.id}`);
+      await this.otpService.markOtpAsUsed(otp);
 
+      this.logger.log(`Password updated successfully for user: ${user.id}`);
       return {
         success: true,
         message: 'Password has been reset successfully',
