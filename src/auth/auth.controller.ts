@@ -4,6 +4,7 @@ import { AuthService } from './auth.service';
 import { LoginDto, LoginResponseDto } from './dto/login.dto';
 import { ForgotPasswordDto, ForgotPasswordResponseDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto, ResetPasswordResponseDto } from './dto/reset-password.dto';
+import { ResendOtpDto, ResendOtpResponseDto } from './dto/resend-otp.dto';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -47,6 +48,26 @@ export class AuthController {
     @Body() forgotPasswordDto: ForgotPasswordDto,
   ): Promise<ForgotPasswordResponseDto> {
     return this.authService.forgotPassword(forgotPasswordDto.email);
+  }
+
+  @Post('resend-otp')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Resend OTP',
+    description: 'Resends a new OTP to the provided email if an account exists',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'If the email exists, a new OTP has been sent',
+    type: ResendOtpResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: 'Failed to process OTP resend request',
+  })
+  @ApiBody({ type: ResendOtpDto })
+  async resendOtp(@Body() resendOtpDto: ResendOtpDto): Promise<ResendOtpResponseDto> {
+    return this.authService.resendOtp(resendOtpDto.email);
   }
 
   @Post('reset-password')

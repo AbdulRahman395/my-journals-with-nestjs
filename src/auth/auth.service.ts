@@ -1,11 +1,12 @@
-import { Injectable, UnauthorizedException, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, NotFoundException, Logger, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
 import { LoginDto, LoginResponseDto } from './dto/login.dto';
 import { ForgotPasswordResponseDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto, ResetPasswordResponseDto } from './dto/reset-password.dto';
-import { sendPasswordResetEmail } from '../mail/templates/email.templates';
+import { ResendOtpResponseDto } from './dto/resend-otp.dto';
+import { sendPasswordResetEmail, sendResendOtpEmail } from '../mail/templates/email.templates';
 import { PasswordUtils } from '../common/utils/password.utils';
 
 @Injectable()
@@ -32,10 +33,7 @@ export class AuthService {
 
     // Check if email is verified
     if (!user.isEmailVerified) {
-      return {
-        success: false,
-        message: 'Please verify your account first',
-      };
+      throw new ForbiddenException('Please verify your account first');
     }
 
     // Validate password
@@ -83,7 +81,7 @@ export class AuthService {
         this.logger.log(`No user found with email: ${email}`);
         return {
           success: true,
-          message: 'If an account with this email exists, a password reset link has been sent.',
+          message: 'Password reset link has been sent.',
         };
       }
 
@@ -111,11 +109,62 @@ export class AuthService {
       this.logger.log(`Password reset email sent successfully to: ${user.email}`);
       return {
         success: true,
-        message: 'If an account with this email exists, a password reset link has been sent.',
+        message: 'Password reset link has been sent.',
       };
     } catch (error) {
       this.logger.error('Error in forgotPassword:', error);
       throw new Error('Failed to process password reset request');
+    }
+  }
+
+  async resendOtp(email: string): Promise<ResendOtpResponseDto> {
+    this.logger.log(`Processing resend OTP request for email: ${email}`);
+    
+    try {
+      const user = await this.usersService.findByEmail(email);
+      
+      // Don't reveal if user doesn't exist for security reasons
+      if (!user) {
+        this.logger.log(`No user found with email: ${email}`);
+        // Return success even if user doesn't exist to prevent email enumeration
+        return {
+          success: true,
+          message: 'New OTP has been sent.',
+        };
+      }
+
+      this.logger.log(`Generating new OTP for user: ${user.id}`);
+      // Generate new OTP
+      const otp = await this.usersService.generatePasswordResetOtp(user.id);
+      
+      if (!otp) {
+        throw new BadRequestException('Failed to generate OTP');
+      }
+      
+      this.logger.log(`Sending new OTP to: ${user.email}`);
+      // Send OTP email
+      const isEmailSent = await sendResendOtpEmail(
+        this.usersService.getMailService(),
+        user.email,
+        otp
+      );
+
+      if (!isEmailSent) {
+        this.logger.error(`Failed to send OTP email to: ${user.email}`);
+        throw new BadRequestException('Failed to send OTP email');
+      }
+
+      this.logger.log(`OTP email sent successfully to: ${user.email}`);
+      return {
+        success: true,
+        message: 'New OTP has been sent.',
+      };
+    } catch (error) {
+      this.logger.error('Error in resendOtp:', error);
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException('Failed to process OTP resend request');
     }
   }
 
