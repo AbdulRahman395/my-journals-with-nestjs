@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, NotFoundException, InternalServerErrorException, Logger, GoneException } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException, InternalServerErrorException, Logger, GoneException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
@@ -167,6 +167,41 @@ export class UsersService {
    * @param otp - 6-digit OTP code
    * @returns Object with success status and message
    */
+  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
+    const user = await this.usersRepository.findOne({ 
+      where: { id: userId },
+      select: ['id', 'passwordHash']
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Verify current password
+    const isPasswordValid = await PasswordUtils.comparePasswords(
+      currentPassword,
+      user.passwordHash
+    );
+
+    if (!isPasswordValid) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    // Check if new password is same as current password
+    const isSamePassword = await PasswordUtils.comparePasswords(
+      newPassword,
+      user.passwordHash
+    );
+
+    if (isSamePassword) {
+      throw new BadRequestException('New password cannot be the same as current password');
+    }
+
+    // Hash and save new password
+    user.passwordHash = await PasswordUtils.hashPassword(newPassword);
+    await this.usersRepository.save(user);
+  }
+
   async verifyAccount(email: string, otp: string): Promise<{ success: boolean; message: string }> {
     // Find the user by email
     const user = await this.findByEmail(email);

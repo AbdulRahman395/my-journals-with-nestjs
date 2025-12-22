@@ -31,18 +31,21 @@ async function createServer() {
     credentials: true,
   });
 
-  // Swagger (disable in prod if you want)
-  if (process.env.NODE_ENV !== 'production') {
-    const config = new DocumentBuilder()
-      .setTitle('My Journals API')
-      .setDescription('My Journals Management System')
-      .setVersion('1.0')
-      .addBearerAuth()
-      .build();
+  // Swagger configuration
+  const config = new DocumentBuilder()
+    .setTitle('My Journals API')
+    .setDescription('My Journals Management System')
+    .setVersion('1.0')
+    .build();
 
-    const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('api', app, document);
-  }
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, document, {
+    swaggerOptions: {
+      persistAuthorization: false,
+    },
+  });
+  
+  console.log('Swagger documentation available at /api');
 
   await app.init();
 

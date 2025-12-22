@@ -168,6 +168,10 @@ export class AuthService {
     }
   }
 
+  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
+    await this.usersService.changePassword(userId, currentPassword, newPassword);
+  }
+
   async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<ResetPasswordResponseDto> {
     const { email, otp, newPassword } = resetPasswordDto;
     this.logger.log(`Processing password reset for email: ${email}`);
