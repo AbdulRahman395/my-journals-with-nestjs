@@ -33,8 +33,8 @@ export const dataSourceOptions: DataSourceOptions = {
   entities: [User, OTP, Journal, JournalMedia],
   synchronize: !isProduction,
   logging: true,
-  migrations: ['dist/migrations/*.js'],
-  migrationsRun: true,
+  migrations: [__dirname + '/migrations/*{.ts,.js}'],
+  migrationsRun: false,
 };
 
 const AppDataSource = new DataSource(dataSourceOptions);
