@@ -76,13 +76,47 @@ export class JournalsService {
     page: number = 1,
     limit: number = 10,
   ) {
-    const result = await paginate(this.journalRepository, {
+    // First, get all journals for the user
+    const allJournals = await this.journalRepository.find({
       where: { user_id: userId },
       relations: ['media'],
-      order: { journal_date: 'DESC' },
-      page,
-      limit,
+      order: { journal_date: 'DESC', created_at: 'DESC' },
     });
+
+    // First, sort all journals by journal_date (DESC) and then by created_at (DESC)
+    const sortedJournals = [...allJournals].sort((a, b) => {
+      // Convert journal_date to timestamps for comparison
+      const dateA = a.journal_date instanceof Date 
+        ? a.journal_date.getTime() 
+        : new Date(a.journal_date).getTime();
+      
+      const dateB = b.journal_date instanceof Date 
+        ? b.journal_date.getTime() 
+        : new Date(b.journal_date).getTime();
+      
+      // First sort by journal_date (DESC)
+      if (dateA > dateB) return -1;
+      if (dateA < dateB) return 1;
+      
+      // If same journal_date, sort by created_at (DESC)
+      return b.created_at.getTime() - a.created_at.getTime();
+    });
+
+    // Apply pagination
+    const start = (page - 1) * limit;
+    const end = start + limit;
+    const paginatedJournals = sortedJournals.slice(start, end);
+
+    // Create pagination result
+    const result = {
+      data: paginatedJournals,
+      pagination: {
+        total: sortedJournals.length,
+        page,
+        limit,
+        totalPages: Math.ceil(sortedJournals.length / limit),
+      },
+    };
 
     return createPaginationResponse(result);
   }
