@@ -16,7 +16,7 @@ export class JournalMediaResponseDto {
   created_at: Date;
 
   constructor(media: JournalMedia) {
-    this.id = media.id;
+    this.id = media.id.toString();
     this.url = media.url;
     this.order = media.order;
     this.created_at = media.created_at;
@@ -52,7 +52,7 @@ export class JournalResponseDto {
   media: JournalMediaResponseDto[];
 
   constructor(journal: Journal) {
-    this.id = journal.id;
+    this.id = journal.id.toString();
     this.title = journal.title;
     this.content = journal.content;
     this.journal_date = journal.journal_date;

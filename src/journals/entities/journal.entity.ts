@@ -4,11 +4,11 @@ import { JournalMedia } from './journal-media.entity';
 
 @Entity('journals')
 export class Journal {
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
+    @PrimaryGeneratedColumn('increment')
+    id: number;
 
-    @Column({ type: 'uuid' })
-    user_id: string;
+    @Column({ type: 'int' })
+    user_id: number;
     
     @Column({ type: 'text', nullable: true })
     title: string | null;

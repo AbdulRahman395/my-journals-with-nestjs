@@ -18,7 +18,7 @@ export class JournalsService {
     @InjectRepository(JournalMedia)
     private readonly journalMediaRepository: Repository<JournalMedia>,
     private readonly cloudinaryService: CloudinaryService,
-  ) {}
+  ) { }
 
   async create(
     createJournalDto: CreateJournalDto,
@@ -28,12 +28,13 @@ export class JournalsService {
     try {
       // Create the journal entry
       const journal = this.journalRepository.create({
-        ...createJournalDto,
+        title: createJournalDto.title,
+        content: createJournalDto.content,
         journal_date: new Date(createJournalDto.journalDate),
-        user_id: user.id,
-        user: user, // Set the user relation
+        user: { id: user.id },  // Just set the relation using the user object
+        metadata: createJournalDto.metadata
       });
-      
+
       const savedJournal = await this.journalRepository.save(journal);
 
       // Upload files to Cloudinary and save media references
@@ -72,7 +73,7 @@ export class JournalsService {
   }
 
   async findAll(
-    userId: string,
+    userId: number,
     page: number = 1,
     limit: number = 10,
   ) {
@@ -86,18 +87,18 @@ export class JournalsService {
     // First, sort all journals by journal_date (DESC) and then by created_at (DESC)
     const sortedJournals = [...allJournals].sort((a, b) => {
       // Convert journal_date to timestamps for comparison
-      const dateA = a.journal_date instanceof Date 
-        ? a.journal_date.getTime() 
+      const dateA = a.journal_date instanceof Date
+        ? a.journal_date.getTime()
         : new Date(a.journal_date).getTime();
-      
-      const dateB = b.journal_date instanceof Date 
-        ? b.journal_date.getTime() 
+
+      const dateB = b.journal_date instanceof Date
+        ? b.journal_date.getTime()
         : new Date(b.journal_date).getTime();
-      
+
       // First sort by journal_date (DESC)
       if (dateA > dateB) return -1;
       if (dateA < dateB) return 1;
-      
+
       // If same journal_date, sort by created_at (DESC)
       return b.created_at.getTime() - a.created_at.getTime();
     });
@@ -121,7 +122,7 @@ export class JournalsService {
     return createPaginationResponse(result);
   }
 
-  async findOne(id: string, userId: string) {
+  async findOne(id: number, userId: number) {
     const journal = await this.journalRepository.findOne({
       where: { id, user_id: userId },
       relations: ['media'],
@@ -135,10 +136,10 @@ export class JournalsService {
   }
 
   async update(
-    id: string,
+    id: number,
     updateJournalDto: UpdateJournalDto,
     files: FileUpload[],
-    userId: string,
+    userId: number,
   ) {
     const journal = await this.findOne(id, userId);
 
@@ -146,8 +147,8 @@ export class JournalsService {
     const updatedJournal = {
       ...journal,
       ...updateJournalDto,
-      journal_date: updateJournalDto.journalDate 
-        ? new Date(updateJournalDto.journalDate) 
+      journal_date: updateJournalDto.journalDate
+        ? new Date(updateJournalDto.journalDate)
         : journal.journal_date,
     };
 
@@ -180,46 +181,46 @@ export class JournalsService {
     return this.findOne(id, userId);
   }
 
-  async remove(id: string, userId: string) {
+  async remove(id: number, userId: number) {
     const journal = await this.findOne(id, userId);
-    
+
     // Delete associated media from Cloudinary and database
     if (journal.media && journal.media.length > 0) {
-      const deletePromises = journal.media.map(media => 
+      const deletePromises = journal.media.map(media =>
         this.cloudinaryService.deleteFile(media.url.split('/').pop()?.split('.')[0] || '')
       );
-      
+
       await Promise.all(deletePromises);
       await this.journalMediaRepository.remove(journal.media);
     }
-    
+
     // Delete the journal
     await this.journalRepository.remove(journal);
-    
+
     return { success: true, message: 'Journal deleted successfully' };
   }
 
-  async removeMedia(mediaId: string, userId: string) {
+  async removeMedia(mediaId: number, userId: number) {
     const media = await this.journalMediaRepository.findOne({
       where: { id: mediaId },
       relations: ['journal'],
     });
 
     if (!media) {
-      throw new NotFoundException(`Media with ID ${mediaId} not found`);
+      throw new NotFoundException('Media not found');
     }
 
-    // Verify that the user owns the journal this media belongs to
+    // Verify the journal belongs to the user
     if (media.journal.user_id !== userId) {
       throw new NotFoundException('Media not found');
     }
 
     // Delete from Cloudinary
     await this.cloudinaryService.deleteFile(media.url.split('/').pop()?.split('.')[0] || '');
-    
+
     // Delete from database
     await this.journalMediaRepository.remove(media);
-    
+
     return { success: true, message: 'Media deleted successfully' };
   }
 }

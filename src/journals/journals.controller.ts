@@ -9,7 +9,7 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFiles,
-  ParseUUIDPipe,
+  ParseIntPipe,
   UnauthorizedException,
   Query,
 } from '@nestjs/common';
@@ -75,7 +75,7 @@ export class JournalsController {
     @Query('page') page = 1,
     @Query('limit') limit = 10,
   ) {
-    return this.journalsService.findAll(user.id, Number(page), Number(limit));
+    return this.journalsService.findAll(Number(user.id), Number(page), Number(limit));
   }
 
   @Get(':id')
@@ -83,10 +83,10 @@ export class JournalsController {
   @ApiResponse({ status: 200, description: 'The journal entry', type: JournalResponseDto })
   @ApiResponse({ status: 404, description: 'Journal not found' })
   async findOne(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: User,
   ) {
-    return this.journalsService.findOne(id, user.id);
+    return this.journalsService.findOne(id, Number(user.id));
   }
 
   @Patch(':id')
@@ -96,12 +96,12 @@ export class JournalsController {
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FilesInterceptor('files'))
   async update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateJournalDto: UpdateJournalDto,
     @UploadedFiles() files: FileUpload[] = [],
     @CurrentUser() user: User,
   ) {
-    return this.journalsService.update(id, updateJournalDto, files, user.id);
+    return this.journalsService.update(id, updateJournalDto, files, Number(user.id));
   }
 
   @Delete(':id')
@@ -109,10 +109,10 @@ export class JournalsController {
   @ApiResponse({ status: 200, description: 'Journal deleted successfully' })
   @ApiResponse({ status: 404, description: 'Journal not found' })
   async remove(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: User,
   ) {
-    return this.journalsService.remove(id, user.id);
+    return this.journalsService.remove(id, Number(user.id));
   }
 
   @Delete('media/:mediaId')
@@ -120,9 +120,9 @@ export class JournalsController {
   @ApiResponse({ status: 200, description: 'Media deleted successfully' })
   @ApiResponse({ status: 404, description: 'Media not found' })
   async removeMedia(
-    @Param('mediaId', ParseUUIDPipe) mediaId: string,
+    @Param('mediaId', ParseIntPipe) mediaId: number,
     @CurrentUser() user: User,
   ) {
-    return this.journalsService.removeMedia(mediaId, user.id);
+    return this.journalsService.removeMedia(mediaId, Number(user.id));
   }
 }
