@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { FileUpload } from '../common/types/file.types';
@@ -9,6 +9,7 @@ import { UpdateJournalDto } from './dto/update-journal.dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { User } from '../users/entities/user.entity';
 import { paginate, createPaginationResponse } from '../common/utils/pagination.util';
+import { EncryptionService } from '../common/services/encryption.service';
 
 @Injectable()
 export class JournalsService {
@@ -17,7 +18,9 @@ export class JournalsService {
     private readonly journalRepository: Repository<Journal>,
     @InjectRepository(JournalMedia)
     private readonly journalMediaRepository: Repository<JournalMedia>,
+    @Inject(forwardRef(() => CloudinaryService))
     private readonly cloudinaryService: CloudinaryService,
+    private readonly encryptionService: EncryptionService,
   ) { }
 
   async create(

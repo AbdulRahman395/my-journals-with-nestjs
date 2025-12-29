@@ -8,6 +8,7 @@ import { JournalsController } from './journals.controller';
 import { JournalsService } from './journals.service';
 import { Journal } from './entities/journal.entity';
 import { JournalMedia } from './entities/journal-media.entity';
+import { EncryptionService } from '../common/services/encryption.service';
 
 @Module({
   imports: [
@@ -15,7 +16,7 @@ import { JournalMedia } from './entities/journal-media.entity';
     CloudinaryModule,
   ],
   controllers: [JournalsController],
-  providers: [JournalsService, JwtService, ConfigService],
+  providers: [JournalsService, JwtService, ConfigService, EncryptionService],
   exports: [JournalsService],
 })
 export class JournalsModule {}

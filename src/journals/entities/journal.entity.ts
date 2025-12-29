@@ -1,6 +1,7 @@
 import { User } from '../../users/entities/user.entity';
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn, OneToMany, } from 'typeorm';
 import { JournalMedia } from './journal-media.entity';
+import { encryptedColumn } from '../../common/services/encryption.service';
 
 @Entity('journals')
 export class Journal {
@@ -10,10 +11,18 @@ export class Journal {
     @Column({ type: 'int' })
     user_id: number;
     
-    @Column({ type: 'text', nullable: true })
+    @Column({ 
+        type: 'jsonb', 
+        nullable: true,
+        transformer: encryptedColumn
+    })
     title: string | null;
 
-    @Column({ type: 'text', nullable: true })
+    @Column({ 
+        type: 'jsonb', 
+        nullable: true,
+        transformer: encryptedColumn
+    })
     content: string | null;
 
     @Column({ type: 'date' })
