@@ -1,7 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v2 as cloudinary, UploadApiOptions, UploadApiResponse } from 'cloudinary';
 import { Readable } from 'stream';
+
+const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
 
 type UploadOptions = Omit<UploadApiOptions, 'resource_type'> & {
   resource_type?: 'auto' | 'image' | 'video' | 'raw';
@@ -32,14 +34,41 @@ export class CloudinaryService {
     });
   }
 
+  private getResourceType(mimetype: string): 'image' | 'video' | 'raw' {
+    if (mimetype.startsWith('video/')) return 'video';
+    if (mimetype.startsWith('image/')) return 'image';
+    return 'raw';
+  }
+
+  private validateFileSize(file: File): void {
+    if (file.buffer.length > MAX_FILE_SIZE_BYTES) {
+      throw new BadRequestException(`File size exceeds the maximum limit of 50MB`);
+    }
+  }
+
   async uploadFile(
     file: File,
     options: UploadOptions = {},
   ): Promise<UploadApiResponse> {
+    this.validateFileSize(file);
+    
+    const resourceType = options.resource_type || this.getResourceType(file.mimetype);
+    
     return new Promise((resolve, reject) => {
       const uploadOptions: UploadApiOptions = {
-        resource_type: 'auto',
+        resource_type: resourceType,
         ...options,
+        // Add video-specific options
+        ...(resourceType === 'video' ? {
+          chunk_size: 20 * 1024 * 1024, // 20MB chunks for large video uploads
+          eager: [
+            { width: 400, crop: 'scale' },
+            { width: 800, crop: 'scale' }
+          ],
+          eager_async: true,
+          eager_notification_url: 'https://your-webhook-url.com/notify',
+          resource_type: 'video',
+        } : {}),
       };
 
       const uploadStream = cloudinary.uploader.upload_stream(
