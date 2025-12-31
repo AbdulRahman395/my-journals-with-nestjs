@@ -36,6 +36,7 @@ export class CloudinaryService {
     file: File,
     options: UploadOptions = {},
   ): Promise<UploadApiResponse> {
+
     return new Promise((resolve, reject) => {
       const uploadOptions: UploadApiOptions = {
         resource_type: 'auto',
