@@ -9,6 +9,7 @@ import { dataSourceOptions } from './data-source';
 import { JournalsModule } from './journals/journals.module';
 import { JwtMiddleware } from './auth/middleware/jwt.middleware';
 import { JwtService } from '@nestjs/jwt';
+import { PinModule } from './pin/pin.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { JwtService } from '@nestjs/jwt';
     UsersModule,
     AuthModule,
     JournalsModule,
+    PinModule,
   ],
   controllers: [AppController],
   providers: [

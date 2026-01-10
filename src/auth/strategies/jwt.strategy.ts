@@ -4,10 +4,11 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 
-type JwtPayload = {
+export type JwtPayload = {
   sub: string;
   email: string;
   isEmailVerified: boolean;
+  pinVerified: boolean;
 };
 
 @Injectable()
@@ -26,10 +27,11 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   }
 
   async validate(payload: JwtPayload) {
-    return { 
-      id: payload.sub, 
+    return {
+      id: payload.sub,
       email: payload.email,
-      isEmailVerified: payload.isEmailVerified 
+      isEmailVerified: payload.isEmailVerified,
+      pinVerified: payload.pinVerified
     };
   }
 }

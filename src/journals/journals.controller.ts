@@ -15,7 +15,6 @@ import {
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { JwtMiddleware } from '../auth/middleware/jwt.middleware';
 import { JournalsService } from './journals.service';
 import { CreateJournalDto } from './dto/create-journal.dto';
 import { UpdateJournalDto } from './dto/update-journal.dto';
@@ -23,10 +22,11 @@ import { JournalResponseDto } from './dto/journal-response.dto';
 import { User } from '../users/entities/user.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { FileUpload } from '../common/types/file.types';
+import { PinVerifiedGuard } from '../auth/guards/pin-verified.guard';
 
 @ApiTags('journals')
 @ApiBearerAuth()
-@UseGuards(JwtMiddleware)
+@UseGuards(PinVerifiedGuard)
 @Controller('journals')
 export class JournalsController {
   constructor(private readonly journalsService: JournalsService) {}
