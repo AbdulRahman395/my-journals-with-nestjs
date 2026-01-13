@@ -22,7 +22,7 @@ import { JwtPayload } from '../auth/strategies/jwt.strategy';
 export class PinService {
   private readonly MAX_ATTEMPTS = 5;
   private readonly LOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutes
-  private readonly PIN_VERIFICATION_EXPIRY = 10 * 60 * 1000; // 10 minutes
+  private readonly PIN_VERIFICATION_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
 
   constructor(
     @InjectRepository(Pin)
