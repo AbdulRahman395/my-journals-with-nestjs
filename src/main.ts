@@ -4,6 +4,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { Request, Response } from 'express';
+import { join } from 'path';
 
 let server: any;
 
@@ -11,6 +12,11 @@ async function createServer() {
   if (server) return server;
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Serve static files from public directory
+  app.useStaticAssets(join(__dirname, '..', 'public'), {
+    index: 'index.html',
+  });
 
   // Global validation
   app.useGlobalPipes(
