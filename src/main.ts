@@ -26,7 +26,7 @@ async function createServer() {
     origin: [
       'https://my-journals-with-react-js.vercel.app',
       'http://localhost:5173',
-      'http://localhost:3000',
+      'http://localhost:*',
       'https://*.vercel.app',
     ],
     credentials: true,
