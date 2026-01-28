@@ -1,6 +1,7 @@
 import { DataSource, DataSourceOptions } from 'typeorm';
 import * as dotenv from 'dotenv';
 import { User } from './users/entities/user.entity';
+import { UserProfile } from './profiles/entities/user-profile.entity';
 import { OTP } from './users/entities/otp.entity';
 import { Journal } from './journals/entities/journal.entity';
 import { JournalMedia } from './journals/entities/journal-media.entity';
@@ -31,7 +32,7 @@ export const dataSourceOptions: DataSourceOptions = {
       ssl: false,
     },
   }),
-  entities: [User, OTP, Journal, JournalMedia, Pin],
+  entities: [User, UserProfile, OTP, Journal, JournalMedia, Pin],
   synchronize: !isProduction,
   logging: true,
   migrations: [__dirname + '/migrations/*{.ts,.js}'],

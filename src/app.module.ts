@@ -10,6 +10,7 @@ import { JournalsModule } from './journals/journals.module';
 import { JwtMiddleware } from './auth/middleware/jwt.middleware';
 import { JwtService } from '@nestjs/jwt';
 import { PinModule } from './pin/pin.module';
+import { ProfilesModule } from './profiles/profiles.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { PinModule } from './pin/pin.module';
     AuthModule,
     JournalsModule,
     PinModule,
+    ProfilesModule,
   ],
   controllers: [AppController],
   providers: [

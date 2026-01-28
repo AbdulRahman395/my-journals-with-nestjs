@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToOne } from 'typeorm';
+import { UserProfile } from '../../profiles/entities/user-profile.entity';
 
 @Entity('users')
 export class User {
@@ -35,5 +36,9 @@ export class User {
     onUpdate: 'NOW()'
   })
   updatedAt: Date;
+
+  // Relations
+  @OneToOne(() => UserProfile, profile => profile.user)
+  profile: UserProfile;
 
 }
