@@ -28,15 +28,42 @@ async function createServer() {
   );
 
   // CORS
+  // app.enableCors({
+  //   origin: [
+  //     'https://my-journals-with-react-js.vercel.app',
+  //     'http://localhost:5173',
+  //     'http://localhost:*',
+  //     'https://*.vercel.app',
+  //   ],
+  //   credentials: true,
+  // });
+
+  // CORS
   app.enableCors({
-    origin: [
-      'https://my-journals-with-react-js.vercel.app',
-      'http://localhost:5173',
-      'http://localhost:*',
-      'https://*.vercel.app',
-    ],
+    origin: (origin, callback) => {
+      // Allow non-browser requests (Flutter mobile, Postman, etc.)
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      // Allow all localhost ports (Flutter Web, React dev)
+      if (
+        origin.startsWith('http://localhost') ||
+        origin.startsWith('http://127.0.0.1')
+      ) {
+        return callback(null, true);
+      }
+
+      // Allow all Vercel deployments
+      if (origin.endsWith('.vercel.app')) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
     credentials: true,
   });
+
 
   // Swagger configuration
   const config = new DocumentBuilder()
@@ -51,7 +78,7 @@ async function createServer() {
       persistAuthorization: false,
     },
   });
-  
+
   console.log('Swagger documentation available at /api');
 
   await app.init();
