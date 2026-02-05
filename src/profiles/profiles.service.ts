@@ -14,6 +14,19 @@ export class ProfilesService {
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
+  async createDefaultProfile(userId: string): Promise<UserProfile> {
+    const profile = this.userProfileRepository.create({
+      user_id: userId,
+      first_name: null,
+      last_name: null,
+      date_of_birth: null,
+      bio: null,
+      profile_picture: null,
+    });
+
+    return await this.userProfileRepository.save(profile);
+  }
+
   async getProfileByUserId(userId: string): Promise<ProfileResponseDto> {
     const profile = await this.userProfileRepository.findOne({
       where: { user_id: userId },

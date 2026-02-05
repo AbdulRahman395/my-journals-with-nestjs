@@ -14,6 +14,7 @@ import { sendPasswordResetEmail, sendResendOtpEmail, sendAccountVerificationEmai
 import { PasswordUtils } from '../common/utils/password.utils';
 import { OtpService } from '../users/otp.service';
 import { MailService } from '../mail/mail.service';
+import { ProfilesService } from '../profiles/profiles.service';
 
 @Injectable()
 export class AuthService {
@@ -27,6 +28,7 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly otpService: OtpService,
     private readonly mailService: MailService,
+    private readonly profilesService: ProfilesService,
   ) {}
 
   async register(registerDto: RegisterDto): Promise<RegisterResponseDto> {
@@ -50,6 +52,15 @@ export class AuthService {
     });
     
     const savedUser = await this.usersRepository.save(user);
+
+    // Create default profile for the user
+    try {
+      await this.profilesService.createDefaultProfile(savedUser.id);
+      this.logger.log(`Default profile created for user: ${savedUser.id}`);
+    } catch (profileError) {
+      this.logger.error(`Failed to create default profile for user: ${savedUser.id}`, profileError);
+      // Continue with registration even if profile creation fails
+    }
 
     try {
       // Generate OTP
