@@ -23,6 +23,7 @@ import { User } from '../users/entities/user.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { FileUpload } from '../common/types/file.types';
 import { PinVerifiedGuard } from '../auth/guards/pin-verified.guard';
+import { AdminGuard } from '../auth/guards/admin.guard';
 
 @ApiTags('journals')
 @ApiBearerAuth()
@@ -124,5 +125,17 @@ export class JournalsController {
     @CurrentUser() user: User,
   ) {
     return this.journalsService.removeMedia(mediaId, Number(user.id));
+  }
+
+  @Delete('admin/user/:userId/journals')
+  @UseGuards(AdminGuard)
+  @ApiOperation({ summary: 'Admin: Delete all journals for a specific user' })
+  @ApiResponse({ status: 200, description: 'All journals deleted successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing admin pin' })
+  @ApiResponse({ status: 404, description: 'No journals found for this user' })
+  async deleteUserJournals(
+    @Param('userId', ParseIntPipe) userId: number,
+  ) {
+    return this.journalsService.deleteUserJournals(userId);
   }
 }

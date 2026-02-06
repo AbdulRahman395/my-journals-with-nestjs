@@ -226,4 +226,36 @@ export class JournalsService {
 
     return { success: true, message: 'Media deleted successfully' };
   }
+
+  async deleteUserJournals(userId: number) {
+    // Find all journals for the user
+    const journals = await this.journalRepository.find({
+      where: { user_id: userId },
+      relations: ['media'],
+    });
+
+    if (journals.length === 0) {
+      throw new NotFoundException(`No journals found for user with ID ${userId}`);
+    }
+
+    // Delete all associated media from Cloudinary and database
+    for (const journal of journals) {
+      if (journal.media && journal.media.length > 0) {
+        const deletePromises = journal.media.map(media =>
+          this.cloudinaryService.deleteFile(media.url.split('/').pop()?.split('.')[0] || '')
+        );
+
+        await Promise.all(deletePromises);
+        await this.journalMediaRepository.remove(journal.media);
+      }
+    }
+
+    // Delete all journals
+    await this.journalRepository.remove(journals);
+
+    return { 
+      success: true, 
+      message: `Successfully deleted ${journals.length} journals for user with ID ${userId}` 
+    };
+  }
 }
