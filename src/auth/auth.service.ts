@@ -55,7 +55,7 @@ export class AuthService {
 
     // Create default profile for the user
     try {
-      await this.profilesService.createDefaultProfile(savedUser.id);
+      await this.profilesService.createDefaultProfile(savedUser.id, registerDto.name);
       this.logger.log(`Default profile created for user: ${savedUser.id}`);
     } catch (profileError) {
       this.logger.error(`Failed to create default profile for user: ${savedUser.id}`, profileError);

@@ -14,10 +14,10 @@ export class ProfilesService {
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
-  async createDefaultProfile(userId: string): Promise<UserProfile> {
+  async createDefaultProfile(userId: string, userName?: string): Promise<UserProfile> {
     const profile = this.userProfileRepository.create({
       user_id: userId,
-      first_name: null,
+      first_name: userName || null,
       last_name: null,
       date_of_birth: null,
       bio: null,
