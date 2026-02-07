@@ -79,16 +79,45 @@ export class JournalsService {
     userId: number,
     page: number = 1,
     limit: number = 10,
+    search?: string,
   ) {
-    // First, get all journals for the user
+    // First, get all journals for the user (without search filter for now)
     const allJournals = await this.journalRepository.find({
       where: { user_id: userId },
       relations: ['media'],
       order: { journal_date: 'DESC', created_at: 'DESC' },
     });
 
-    // First, sort all journals by journal_date (DESC) and then by created_at (DESC)
-    const sortedJournals = [...allJournals].sort((a, b) => {
+    console.log('Total journals found for user:', allJournals.length);
+    console.log('Search term provided:', search);
+
+    // Apply search filter in memory if search term is provided
+    let filteredJournals = allJournals;
+    if (search && search.trim()) {
+      const searchTerm = search.trim().toLowerCase();
+      console.log('Searching for term:', searchTerm);
+      
+      filteredJournals = allJournals.filter(journal => {
+        const title = journal.title || '';
+        const content = journal.content || '';
+        
+        console.log('Journal ID:', journal.id);
+        console.log('Title:', title);
+        console.log('Content snippet:', content.substring(0, 100));
+        
+        const titleMatch = title.toLowerCase().includes(searchTerm);
+        const contentMatch = content.toLowerCase().includes(searchTerm);
+        
+        console.log('Title match:', titleMatch, 'Content match:', contentMatch);
+        
+        return titleMatch || contentMatch;
+      });
+      
+      console.log('Filtered journals count:', filteredJournals.length);
+    }
+
+    // Sort all journals by journal_date (DESC) and then by created_at (DESC)
+    const sortedJournals = [...filteredJournals].sort((a, b) => {
       // Convert journal_date to timestamps for comparison
       const dateA = a.journal_date instanceof Date
         ? a.journal_date.getTime()

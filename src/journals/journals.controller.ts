@@ -75,8 +75,9 @@ export class JournalsController {
     @CurrentUser() user: User,
     @Query('page') page = 1,
     @Query('limit') limit = 10,
+    @Query('search') search?: string,
   ) {
-    return this.journalsService.findAll(Number(user.id), Number(page), Number(limit));
+    return this.journalsService.findAll(Number(user.id), Number(page), Number(limit), search);
   }
 
   @Get(':id')
