@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsEmail, IsNotEmpty, MinLength, Length } from 'class-validator';
+import { UserResponseDto } from './login.dto';
 
 export class RegisterDto {
   @ApiProperty({ example: 'John Doe', description: 'Full name of the user' })
@@ -33,6 +34,34 @@ export class VerifyAccountDto {
   @IsNotEmpty()
   @Length(6, 6, { message: 'OTP must be 6 digits' })
   otp: string;
+}
+
+export class VerifyAccountResponseDto {
+  @ApiProperty({
+    example: true,
+    description: 'Indicates if the account verification was successful'
+  })
+  success: boolean;
+
+  @ApiProperty({
+    example: 'Account verified successfully',
+    description: 'A message describing the result of the verification'
+  })
+  message: string;
+
+  @ApiProperty({
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+    description: 'JWT token for authenticated requests',
+    required: false
+  })
+  token?: string;
+
+  @ApiProperty({
+    type: UserResponseDto,
+    description: 'User information',
+    required: false
+  })
+  user?: UserResponseDto;
 }
 
 export class RegisterResponseDto {

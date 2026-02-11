@@ -9,7 +9,7 @@ import { LoginDto, LoginResponseDto } from './dto/login.dto';
 import { ForgotPasswordResponseDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto, ResetPasswordResponseDto } from './dto/reset-password.dto';
 import { ResendOtpResponseDto } from './dto/resend-otp.dto';
-import { RegisterDto, RegisterResponseDto, VerifyAccountDto } from './dto/register.dto';
+import { RegisterDto, RegisterResponseDto, VerifyAccountDto, VerifyAccountResponseDto } from './dto/register.dto';
 import { sendPasswordResetEmail, sendResendOtpEmail, sendAccountVerificationEmail } from '../mail/templates/email.templates';
 import { PasswordUtils } from '../common/utils/password.utils';
 import { OtpService } from '../users/otp.service';
@@ -91,7 +91,7 @@ export class AuthService {
     }
   }
 
-  async verifyAccount(verifyAccountDto: VerifyAccountDto): Promise<{ success: boolean; message: string }> {
+  async verifyAccount(verifyAccountDto: VerifyAccountDto): Promise<VerifyAccountResponseDto> {
     const { email, otp } = verifyAccountDto;
     
     // Find the user
@@ -110,9 +110,31 @@ export class AuthService {
     user.isEmailVerified = true;
     await this.usersRepository.save(user);
 
+    // Generate JWT token for automatic login
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      isEmailVerified: user.isEmailVerified,
+    };
+
+    const token = this.jwtService.sign(
+      payload,
+      {
+        secret: this.configService.get<string>('JWT_SECRET'),
+        expiresIn: this.configService.get<string>('JWT_EXPIRES_IN') || '7d',
+      } as any,
+    );
+
     return {
       success: true,
-      message: 'Account verified successfully. You can now log in.'
+      message: 'Account verified successfully. You are now logged in.',
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        isEmailVerified: user.isEmailVerified,
+      },
     };
   }
 

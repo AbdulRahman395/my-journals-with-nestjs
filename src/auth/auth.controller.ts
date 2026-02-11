@@ -7,7 +7,7 @@ import { ForgotPasswordDto, ForgotPasswordResponseDto } from './dto/forgot-passw
 import { ResetPasswordDto, ResetPasswordResponseDto } from './dto/reset-password.dto';
 import { ResendOtpDto, ResendOtpResponseDto } from './dto/resend-otp.dto';
 import { ChangePasswordDto, ChangePasswordResponseDto } from './dto/change-password.dto';
-import { RegisterDto, RegisterResponseDto, VerifyAccountDto } from './dto/register.dto';
+import { RegisterDto, RegisterResponseDto, VerifyAccountDto, VerifyAccountResponseDto } from './dto/register.dto';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -54,18 +54,12 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Verify user account',
-    description: 'Verifies a user account using the OTP sent to their email.',
+    description: 'Verifies a user account using the OTP sent to their email. Upon successful verification, automatically logs the user in and returns a JWT token.',
   })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: 'Account verified successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', example: true },
-        message: { type: 'string', example: 'Account verified successfully' },
-      },
-    },
+    description: 'Account verified successfully and user logged in',
+    type: VerifyAccountResponseDto,
   })
   @ApiResponse({
     status: HttpStatus.BAD_REQUEST,
@@ -87,7 +81,7 @@ export class AuthController {
       },
     },
   })
-  async verifyAccount(@Body() verifyAccountDto: VerifyAccountDto): Promise<{ success: boolean; message: string }> {
+  async verifyAccount(@Body() verifyAccountDto: VerifyAccountDto): Promise<VerifyAccountResponseDto> {
     return this.authService.verifyAccount(verifyAccountDto);
   }
 
