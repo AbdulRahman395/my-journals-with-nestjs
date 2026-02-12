@@ -3,7 +3,7 @@ import { AuthGuard } from '@nestjs/passport';
 
 @Injectable()
 export class AdminGuard extends AuthGuard('jwt') {
-  private readonly ADMIN_SECRET_PIN = '123456'; // Hardcoded secret pin
+  private readonly ADMIN_SECRET_PIN = 'AbdulRahman0937753@AdminPIN'; // Hardcoded secret pin
 
   canActivate(context: ExecutionContext) {
     // First, run the JWT validation
