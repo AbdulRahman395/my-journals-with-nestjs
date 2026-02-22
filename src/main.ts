@@ -67,8 +67,8 @@ async function createServer() {
 
   // Swagger configuration
   const config = new DocumentBuilder()
-    .setTitle('My Journals API')
-    .setDescription('My Journals Management System')
+    .setTitle('Notevia API')
+    .setDescription('Notevia Management System')
     .setVersion('1.0')
     .build();
 

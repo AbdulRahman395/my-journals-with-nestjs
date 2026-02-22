@@ -18,7 +18,7 @@ export const sendAccountVerificationEmail = async (
     <p style="margin-bottom: 20px;">Hello,</p>
     
     <p style="margin-bottom: 20px;">
-      Thank you for signing up with <strong>My Journals</strong>!  
+      Thank you for signing up with <strong>Notevia</strong>!  
       To complete your registration, please use the following One-Time Password (OTP) to verify your email address:
     </p>
     
@@ -33,13 +33,13 @@ export const sendAccountVerificationEmail = async (
     
     <p style="margin-bottom: 5px;">Best regards,</p>
     <p style="margin-top: 0; color: #6c757d;">
-      The My Journals Team
+      The Notevia Team
     </p>
     
     <div style="text-align: center; margin-top: 30px;">
       <img 
         src="https://png.pngtree.com/png-vector/20230324/ourmid/pngtree-brown-journaling-book-with-sticky-notes-vector-png-image_6666791.png" 
-        alt="My Journals Logo" 
+        alt="Notevia Logo" 
         style="width: 100px;" 
       />
     </div>
@@ -50,7 +50,7 @@ export const sendAccountVerificationEmail = async (
 
     const isMailSent = await mailService.sendMail({
       to: email,
-      subject: 'My Journals - Verify Your OTP Code',
+      subject: 'Notevia - Verify Your OTP Code',
       html: mailContent,
     });
 
@@ -93,13 +93,13 @@ export const sendPasswordResetEmail = async (
     
     <p style="margin-bottom: 5px;">Best regards,</p>
     <p style="margin-top: 0; color: #6c757d;">
-      The My Journals Team
+      The Notevia Team
     </p>
     
     <div style="text-align: center; margin-top: 30px;">
       <img 
         src="https://png.pngtree.com/png-vector/20230324/ourmid/pngtree-brown-journaling-book-with-sticky-notes-vector-png-image_6666791.png" 
-        alt="My Journals Logo" 
+        alt="Notevia Logo" 
         style="width: 100px;" 
       />
     </div>
@@ -110,7 +110,7 @@ export const sendPasswordResetEmail = async (
 
     const isMailSent = await mailService.sendMail({
       to: email,
-      subject: 'My Journals - Reset Your Password',
+      subject: 'Notevia - Reset Your Password',
       html: mailContent,
     });
 
@@ -139,7 +139,7 @@ export const sendResendOtpEmail = async (
           <p style="margin-bottom: 20px;">Hello,</p>
           
           <p style="margin-bottom: 20px;">
-            You requested a One-Time Password (OTP) for verification with My Journals. 
+            You requested a One-Time Password (OTP) for verification with Notevia. 
             Here is your verification code:
           </p>
           
@@ -162,13 +162,13 @@ export const sendResendOtpEmail = async (
           
           <p style="margin-bottom: 5px;">Best regards,</p>
           <p style="margin-top: 0; color: #6c757d;">
-            The My Journals Team
+            The Notevia Team
           </p>
           
           <div style="text-align: center; margin-top: 30px;">
             <img 
               src="https://png.pngtree.com/png-vector/20230324/ourmid/pngtree-brown-journaling-book-with-sticky-notes-vector-png-image_6666791.png" 
-              alt="My Journals Logo" 
+              alt="Notevia Logo" 
               style="width: 100px;" 
             />
           </div>
@@ -179,7 +179,7 @@ export const sendResendOtpEmail = async (
 
     const isMailSent = await mailService.sendMail({
       to: email,
-      subject: 'My Journals - Your Verification Code',
+      subject: 'Notevia - Your Verification Code',
       html: mailContent,
     });
 

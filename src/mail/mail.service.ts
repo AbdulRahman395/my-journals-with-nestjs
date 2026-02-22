@@ -97,7 +97,7 @@ export class MailService {
       this.logger.debug(`Email subject: ${subject}`);
       
       const info = await this.transporter.sendMail({
-        from: `"My Journals" <${from}>`,
+        from: `"Notevia" <${from}>`,
         to,
         subject,
         text: text || html.replace(/<[^>]*>/g, ''), // Fallback to HTML without tags
