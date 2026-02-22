@@ -17,18 +17,20 @@ import { CreatePinDto } from './dto/create-pin.dto';
 import { VerifyPinDto } from './dto/verify-pin.dto';
 import { User } from '../users/entities/user.entity';
 import { JwtPayload } from '../auth/strategies/jwt.strategy';
+import { LockService } from '../common/services/lock.service';
 
 @Injectable()
 export class PinService {
   private readonly MAX_ATTEMPTS = 5;
   private readonly LOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutes
-  private readonly PIN_VERIFICATION_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
+  private readonly PIN_VERIFICATION_EXPIRY = 90 * 24 * 60 * 60 * 1000; // 90 days
 
   constructor(
     @InjectRepository(Pin)
     private readonly pinRepository: Repository<Pin>,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly lockService: LockService,
   ) {}
 
   async createPin(user: User, createPinDto: CreatePinDto): Promise<{ accessToken: string }> {
@@ -112,6 +114,9 @@ export class PinService {
     pin.failedAttempts = 0;
     pin.lockedUntil = null;
     await this.pinRepository.save(pin);
+
+    // Set lastActive to null for lock mechanism
+    await this.lockService.setLastActiveToNull(userId);
 
     // Generate a new JWT with pinVerified: true
     return this.generatePinVerifiedToken(user);

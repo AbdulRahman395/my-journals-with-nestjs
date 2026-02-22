@@ -15,6 +15,7 @@ import { PasswordUtils } from '../common/utils/password.utils';
 import { OtpService } from '../users/otp.service';
 import { MailService } from '../mail/mail.service';
 import { ProfilesService } from '../profiles/profiles.service';
+import { LockService } from '../common/services/lock.service';
 
 @Injectable()
 export class AuthService {
@@ -29,6 +30,7 @@ export class AuthService {
     private readonly otpService: OtpService,
     private readonly mailService: MailService,
     private readonly profilesService: ProfilesService,
+    private readonly lockService: LockService,
   ) {}
 
   async register(registerDto: RegisterDto): Promise<RegisterResponseDto> {
@@ -110,9 +112,18 @@ export class AuthService {
     user.isEmailVerified = true;
     await this.usersRepository.save(user);
 
+    // Create default lock record for the user
+    try {
+      await this.lockService.createDefaultLock(user.id);
+      this.logger.log(`Default lock record created for user: ${user.id}`);
+    } catch (lockError) {
+      this.logger.error(`Failed to create default lock record for user: ${user.id}`, lockError);
+      // Continue with verification even if lock creation fails
+    }
+
     // Generate JWT token for automatic login
     const payload = {
-      sub: user.id,
+      sub: user.id.toString(),
       email: user.email,
       isEmailVerified: user.isEmailVerified,
     };
@@ -173,7 +184,7 @@ export class AuthService {
 
     // Generate JWT token
     const payload = {
-      sub: user.id,
+      sub: user.id.toString(),
       email: user.email,
       isEmailVerified: user.isEmailVerified,
     };
@@ -297,7 +308,7 @@ export class AuthService {
     }
   }
 
-  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
+  async changePassword(userId: number, currentPassword: string, newPassword: string): Promise<void> {
     const user = await this.usersRepository.findOne({ 
       where: { id: userId },
       select: ['id', 'passwordHash']

@@ -1,10 +1,11 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToOne } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToOne, OneToMany } from 'typeorm';
 import { UserProfile } from '../../profiles/entities/user-profile.entity';
+import { Lock } from '../../lock/entities/lock.entity';
 
 @Entity('users')
 export class User {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
   @Column({ type: 'varchar', length: 255, nullable: false })
   name: string;
@@ -41,4 +42,6 @@ export class User {
   @OneToOne(() => UserProfile, profile => profile.user)
   profile: UserProfile;
 
+  @OneToMany(() => Lock, lock => lock.user)
+  locks: Lock[];
 }

@@ -6,6 +6,7 @@ import { OTP } from './users/entities/otp.entity';
 import { Journal } from './journals/entities/journal.entity';
 import { JournalMedia } from './journals/entities/journal-media.entity';
 import { Pin } from './pin/entities/pin.entity';
+import { Lock } from './lock/entities/lock.entity';
 
 dotenv.config();
 
@@ -32,7 +33,7 @@ export const dataSourceOptions: DataSourceOptions = {
       ssl: false,
     },
   }),
-  entities: [User, UserProfile, OTP, Journal, JournalMedia, Pin],
+  entities: [User, UserProfile, OTP, Journal, JournalMedia, Pin, Lock],
   synchronize: !isProduction,
   logging: true,
   migrations: [__dirname + '/migrations/*{.ts,.js}'],

@@ -11,6 +11,13 @@ export type JwtPayload = {
   pinVerified: boolean;
 };
 
+export type JwtUser = {
+  id: string;
+  email: string;
+  isEmailVerified: boolean;
+  pinVerified: boolean;
+};
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(configService: ConfigService) {

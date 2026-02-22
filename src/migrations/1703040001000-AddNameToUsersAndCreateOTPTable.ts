@@ -12,7 +12,7 @@ export default class AddNameToUsersAndCreateOTPTable1703040001000 implements Mig
     await queryRunner.query(`
       CREATE TABLE otps (
         id SERIAL PRIMARY KEY,
-        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         otp VARCHAR(6) NOT NULL,
         is_used BOOLEAN NOT NULL DEFAULT FALSE,
         expires_at TIMESTAMP WITH TIME ZONE NOT NULL,

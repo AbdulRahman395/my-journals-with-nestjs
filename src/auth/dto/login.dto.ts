@@ -23,10 +23,10 @@ export class LoginDto {
 
 export class UserResponseDto {
   @ApiProperty({
-    example: '550e8400-e29b-41d4-a716-446655440000',
+    example: 1,
     description: 'The unique identifier of the user'
   })
-  id: string;
+  id: number;
 
   @ApiProperty({
     example: 'user@example.com',

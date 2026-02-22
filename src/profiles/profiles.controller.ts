@@ -13,7 +13,7 @@ export class ProfilesController {
 
   @Get('me')
   async getMyProfile(@Request() req: { user: { id: string; email: string; isEmailVerified: boolean; pinVerified: boolean } }): Promise<ProfileResponseDto> {
-    return this.profilesService.getProfileByUserId(req.user.id);
+    return this.profilesService.getProfileByUserId(parseInt(req.user.id, 10));
   }
 
   @Patch('me')
@@ -23,6 +23,6 @@ export class ProfilesController {
     @UploadedFile() file: Express.Multer.File,
     @Body() updateProfileDto: UpdateProfileDto,
   ): Promise<ProfileResponseDto> {
-    return this.profilesService.updateProfile(req.user.id, updateProfileDto, file);
+    return this.profilesService.updateProfile(parseInt(req.user.id, 10), updateProfileDto, file);
   }
 }

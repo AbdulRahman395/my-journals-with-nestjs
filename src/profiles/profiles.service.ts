@@ -14,7 +14,7 @@ export class ProfilesService {
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
-  async createDefaultProfile(userId: string, userName?: string): Promise<UserProfile> {
+  async createDefaultProfile(userId: number, userName?: string): Promise<UserProfile> {
     const profile = this.userProfileRepository.create({
       user_id: userId,
       first_name: userName || null,
@@ -27,7 +27,7 @@ export class ProfilesService {
     return await this.userProfileRepository.save(profile);
   }
 
-  async getProfileByUserId(userId: string): Promise<ProfileResponseDto> {
+  async getProfileByUserId(userId: number): Promise<ProfileResponseDto> {
     const profile = await this.userProfileRepository.findOne({
       where: { user_id: userId },
     });
@@ -40,7 +40,7 @@ export class ProfilesService {
   }
 
   async updateProfile(
-    userId: string,
+    userId: number,
     updateProfileDto: UpdateProfileDto,
     file?: Express.Multer.File,
   ): Promise<ProfileResponseDto> {

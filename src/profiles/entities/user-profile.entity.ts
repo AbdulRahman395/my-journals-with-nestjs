@@ -6,8 +6,8 @@ export class UserProfile {
   @PrimaryGeneratedColumn('increment')
   id: number;
 
-  @Column({ type: 'uuid' })
-  user_id: string;
+  @Column({ type: 'integer' })
+  user_id: number;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   first_name: string | null;

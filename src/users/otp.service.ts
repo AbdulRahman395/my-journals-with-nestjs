@@ -32,7 +32,7 @@ export class OtpService {
 
   private readonly logger = new Logger(OtpService.name);
 
-  async validateOTP(userId: string, otp: string): Promise<boolean> {
+  async validateOTP(userId: number, otp: string): Promise<boolean> {
     try {
       const currentTime = new Date();
       this.logger.log(`Validating OTP for user ${userId} at ${currentTime}`);
@@ -67,7 +67,7 @@ export class OtpService {
    * @param otp - The OTP code
    * @returns The OTP record if found, null otherwise
    */
-  async getOtpByUserAndCode(userId: string, otp: string): Promise<OTP | null> {
+  async getOtpByUserAndCode(userId: number, otp: string): Promise<OTP | null> {
     return this.otpRepository
       .createQueryBuilder('otp')
       .where('otp.userId = :userId', { userId })

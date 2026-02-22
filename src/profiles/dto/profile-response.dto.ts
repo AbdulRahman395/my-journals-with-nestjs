@@ -1,6 +1,6 @@
 export class ProfileResponseDto {
   id: number;
-  user_id: string;
+  user_id: number;
   first_name: string | null;
   last_name: string | null;
   date_of_birth: Date | null;

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, ParseUUIDPipe, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, HttpStatus } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
@@ -15,7 +15,7 @@ export class UsersController {
 
   @Get(':id')
   async findOne(
-    @Param('id', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) id: string,
+    @Param('id', new ParseIntPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) id: number,
   ): Promise<User> {
     return this.usersService.findOne(id);
   }

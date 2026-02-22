@@ -6,8 +6,8 @@ export class OTP {
   @PrimaryGeneratedColumn('increment')
   id: number;
 
-  @Column({ name: 'user_id', type: 'uuid' })
-  userId: string;
+  @Column({ name: 'user_id', type: 'integer' })
+  userId: number;
 
   @ManyToOne(() => User, (user) => user, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
