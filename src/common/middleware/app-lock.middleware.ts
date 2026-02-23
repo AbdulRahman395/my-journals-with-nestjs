@@ -31,6 +31,7 @@ export class AppLockMiddleware implements NestMiddleware {
       '/pin/verify',
       '/pin/status',
       '/pin/has-pin',
+      '/lock/preferences'
     ];
 
     if (publicRoutes.some(route => req.path.startsWith(route))) {

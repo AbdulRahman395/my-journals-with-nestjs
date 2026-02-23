@@ -78,6 +78,9 @@ export class AppModule implements NestModule {
         { path: 'auth/resend-otp', method: RequestMethod.ALL },
         { path: 'auth/verify-account', method: RequestMethod.ALL },
         
+        // Lock preferences
+        { path: 'lock/preferences', method: RequestMethod.ALL },
+        
         // PIN-related endpoints (need to be accessible for unlocking)
         { path: 'pin/create', method: RequestMethod.ALL },
         { path: 'pin/verify', method: RequestMethod.ALL },
