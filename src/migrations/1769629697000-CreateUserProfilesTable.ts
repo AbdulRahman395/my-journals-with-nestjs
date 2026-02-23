@@ -35,7 +35,7 @@ export default class CreateUserProfilesTable1769629697000 implements MigrationIn
       await queryRunner.query(`
         CREATE TABLE user_profiles (
           id SERIAL PRIMARY KEY,
-          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
           first_name VARCHAR(255),
           last_name VARCHAR(255),
           date_of_birth DATE,

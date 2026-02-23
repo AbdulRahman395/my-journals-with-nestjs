@@ -5,8 +5,8 @@ export default class CreateJournalsAndMediaTables1703040002000 implements Migrat
     // Create journals table
     await queryRunner.query(`
       CREATE TABLE journals (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         title TEXT,
         content TEXT,
         journal_date DATE NOT NULL,
@@ -19,8 +19,8 @@ export default class CreateJournalsAndMediaTables1703040002000 implements Migrat
     // Create journal_media table
     await queryRunner.query(`
       CREATE TABLE journal_media (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        journal_id UUID NOT NULL REFERENCES journals(id) ON DELETE CASCADE,
+        id SERIAL PRIMARY KEY,
+        journal_id INTEGER NOT NULL REFERENCES journals(id) ON DELETE CASCADE,
         url TEXT NOT NULL,
         "order" INTEGER NOT NULL DEFAULT 0,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

@@ -21,7 +21,7 @@ export class Lock {
   @Column({
     type: 'enum',
     enum: LockPreference,
-    default: LockPreference.IMMEDIATELY,
+    default: LockPreference.OFF,
     nullable: false
   })
   preferences: LockPreference;
