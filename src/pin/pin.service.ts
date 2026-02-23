@@ -59,6 +59,9 @@ export class PinService {
 
     await this.pinRepository.save(pin);
 
+    // Set lastActive to null for lock mechanism
+    await this.lockService.setLastActiveToNull(userId);
+
     // Generate a new JWT with pinVerified: true
     return this.generatePinVerifiedToken(user);
   }
