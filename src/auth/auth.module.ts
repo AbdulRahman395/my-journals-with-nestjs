@@ -15,6 +15,7 @@ import { OtpService } from '../users/otp.service';
 import { MailModule } from '../mail/mail.module';
 import { OTP } from '../users/entities/otp.entity';
 import { CommonLockModule } from '../common/common-lock.module';
+import { StreaksModule } from '../streaks/streaks.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { CommonLockModule } from '../common/common-lock.module';
     ProfilesModule,
     MailModule,
     CommonLockModule,
+    StreaksModule,
     TypeOrmModule.forFeature([User, OTP, UserProfile]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({

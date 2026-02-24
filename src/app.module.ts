@@ -14,6 +14,7 @@ import { PinModule } from './pin/pin.module';
 import { ProfilesModule } from './profiles/profiles.module';
 import { LockModule } from './lock/lock.module';
 import { CommonLockModule } from './common/common-lock.module';
+import { StreaksModule } from './streaks/streaks.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { CommonLockModule } from './common/common-lock.module';
     ProfilesModule,
     LockModule,
     CommonLockModule,
+    StreaksModule,
   ],
   controllers: [AppController],
   providers: [

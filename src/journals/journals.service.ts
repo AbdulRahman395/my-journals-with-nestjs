@@ -10,6 +10,7 @@ import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { User } from '../users/entities/user.entity';
 import { paginate, createPaginationResponse } from '../common/utils/pagination.util';
 import { EncryptionService } from '../common/services/encryption.service';
+import { StreaksService } from '../streaks/streaks.service';
 
 @Injectable()
 export class JournalsService {
@@ -21,6 +22,7 @@ export class JournalsService {
     @Inject(forwardRef(() => CloudinaryService))
     private readonly cloudinaryService: CloudinaryService,
     private readonly encryptionService: EncryptionService,
+    private readonly streaksService: StreaksService,
   ) { }
 
   async create(
@@ -39,6 +41,9 @@ export class JournalsService {
       });
 
       const savedJournal = await this.journalRepository.save(journal);
+
+      // Update user streak after successful journal creation
+      await this.streaksService.updateUserStreak(user.id);
 
       // Upload files to Cloudinary and save media references
       if (files && files.length > 0) {

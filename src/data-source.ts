@@ -7,7 +7,7 @@ import { Journal } from './journals/entities/journal.entity';
 import { JournalMedia } from './journals/entities/journal-media.entity';
 import { Pin } from './pin/entities/pin.entity';
 import { Lock } from './lock/entities/lock.entity';
-
+import { UserStreak } from './streaks/entities/user-streak.entity';
 dotenv.config();
 
 const isProduction = process.env.NODE_ENV === 'production';
@@ -33,7 +33,7 @@ export const dataSourceOptions: DataSourceOptions = {
       ssl: false,
     },
   }),
-  entities: [User, UserProfile, OTP, Journal, JournalMedia, Pin, Lock],
+  entities: [User, UserProfile, OTP, Journal, JournalMedia, Pin, Lock, UserStreak],
   synchronize: !isProduction,
   logging: true,
   migrations: [__dirname + '/migrations/*{.ts,.js}'],

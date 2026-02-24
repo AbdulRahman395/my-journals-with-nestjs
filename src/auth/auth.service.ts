@@ -16,6 +16,7 @@ import { OtpService } from '../users/otp.service';
 import { MailService } from '../mail/mail.service';
 import { ProfilesService } from '../profiles/profiles.service';
 import { LockService } from '../common/services/lock.service';
+import { StreaksService } from '../streaks/streaks.service';
 
 @Injectable()
 export class AuthService {
@@ -31,6 +32,7 @@ export class AuthService {
     private readonly mailService: MailService,
     private readonly profilesService: ProfilesService,
     private readonly lockService: LockService,
+    private readonly streaksService: StreaksService,
   ) {}
 
   async register(registerDto: RegisterDto): Promise<RegisterResponseDto> {
@@ -118,6 +120,15 @@ export class AuthService {
     } catch (lockError) {
       this.logger.error(`Failed to create default lock record for user: ${user.id}`, lockError);
       // Continue with verification even if lock creation fails
+    }
+
+    // Create default streak record for the user
+    try {
+      await this.streaksService.getOrCreateUserStreak(user.id);
+      this.logger.log(`Default streak record created for user: ${user.id}`);
+    } catch (streakError) {
+      this.logger.error(`Failed to create default streak record for user: ${user.id}`, streakError);
+      // Continue with verification even if streak creation fails
     }
 
     // Generate JWT token for automatic login
