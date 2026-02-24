@@ -73,13 +73,13 @@ async function createServer() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document, {
+  SwaggerModule.setup('docs', app, document, {
     swaggerOptions: {
       persistAuthorization: false,
     },
   });
 
-  console.log('Swagger documentation available at /api');
+  console.log('Swagger documentation available at /docs');
 
   await app.init();
 
