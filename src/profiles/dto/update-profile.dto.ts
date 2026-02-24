@@ -26,15 +26,9 @@ function IsDateString(validationOptions?: ValidationOptions) {
 export class UpdateProfileDto {
   @IsOptional()
   @IsString()
-  @MaxLength(255)
+  @MaxLength(511)
   @Transform(({ value }) => value?.trim())
-  first_name?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(255)
-  @Transform(({ value }) => value?.trim())
-  last_name?: string;
+  full_name?: string;
 
   @IsOptional()
   @IsDateString({ message: 'date_of_birth must be a valid date string' })

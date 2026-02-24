@@ -14,11 +14,10 @@ export class ProfilesService {
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
-  async createDefaultProfile(userId: number, userName?: string): Promise<UserProfile> {
+  async createDefaultProfile(userId: number, fullName?: string): Promise<UserProfile> {
     const profile = this.userProfileRepository.create({
       user_id: userId,
-      first_name: userName || null,
-      last_name: null,
+      full_name: fullName || null,
       date_of_birth: null,
       bio: null,
       profile_picture: null,
@@ -53,11 +52,8 @@ export class ProfilesService {
     }
 
     // Update only provided fields
-    if (updateProfileDto.first_name !== undefined) {
-      profile.first_name = updateProfileDto.first_name;
-    }
-    if (updateProfileDto.last_name !== undefined) {
-      profile.last_name = updateProfileDto.last_name;
+    if (updateProfileDto.full_name !== undefined) {
+      profile.full_name = updateProfileDto.full_name;
     }
     if (updateProfileDto.date_of_birth !== undefined) {
       profile.date_of_birth = new Date(updateProfileDto.date_of_birth);
@@ -106,8 +102,7 @@ export class ProfilesService {
     return {
       id: profile.id,
       user_id: profile.user_id,
-      first_name: profile.first_name,
-      last_name: profile.last_name,
+      full_name: profile.full_name,
       date_of_birth: profile.date_of_birth,
       bio: profile.bio,
       profile_picture: profile.profile_picture,

@@ -10,6 +10,7 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { UsersModule } from '../users/users.module';
 import { ProfilesModule } from '../profiles/profiles.module';
+import { ProfilesService } from '../profiles/profiles.service';
 import { OtpService } from '../users/otp.service';
 import { MailModule } from '../mail/mail.module';
 import { OTP } from '../users/entities/otp.entity';
@@ -39,6 +40,7 @@ import { CommonLockModule } from '../common/common-lock.module';
     AuthService, 
     JwtStrategy,
     OtpService,
+    ProfilesService,
   ],
   exports: [
     JwtStrategy, 

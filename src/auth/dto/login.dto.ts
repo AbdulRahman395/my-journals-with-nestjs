@@ -35,12 +35,6 @@ export class UserResponseDto {
   email: string;
 
   @ApiProperty({
-    example: 'John Doe',
-    description: 'The full name of the user'
-  })
-  name: string;
-
-  @ApiProperty({
     example: true,
     description: 'Indicates if the user\'s email has been verified'
   })

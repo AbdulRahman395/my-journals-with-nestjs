@@ -9,11 +9,8 @@ export class UserProfile {
   @Column({ type: 'integer' })
   user_id: number;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
-  first_name: string | null;
-
-  @Column({ type: 'varchar', length: 255, nullable: true })
-  last_name: string | null;
+  @Column({ type: 'varchar', length: '511', nullable: true })
+  full_name: string | null;
 
   @Column({ type: 'date', nullable: true })
   date_of_birth: Date | null;

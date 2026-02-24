@@ -48,7 +48,6 @@ export class AuthService {
     
     // Create user with hashed password
     const user = this.usersRepository.create({
-      name: registerDto.name,
       email: registerDto.email,
       passwordHash: hashedPassword
     });
@@ -126,6 +125,7 @@ export class AuthService {
       sub: user.id.toString(),
       email: user.email,
       isEmailVerified: user.isEmailVerified,
+      pinVerified: false,
     };
 
     const token = this.jwtService.sign(
@@ -143,7 +143,6 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        name: user.name,
         isEmailVerified: user.isEmailVerified,
       },
     };
@@ -187,6 +186,7 @@ export class AuthService {
       sub: user.id.toString(),
       email: user.email,
       isEmailVerified: user.isEmailVerified,
+      pinVerified: false,
     };
 
     const token = this.jwtService.sign(
@@ -204,7 +204,6 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        name: user.name,
         isEmailVerified: user.isEmailVerified,
       },
     };
