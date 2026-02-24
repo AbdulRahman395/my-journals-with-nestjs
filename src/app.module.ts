@@ -15,6 +15,8 @@ import { ProfilesModule } from './profiles/profiles.module';
 import { LockModule } from './lock/lock.module';
 import { CommonLockModule } from './common/common-lock.module';
 import { StreaksModule } from './streaks/streaks.module';
+import { MoodModule } from './mood/mood.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -31,6 +33,8 @@ import { StreaksModule } from './streaks/streaks.module';
     LockModule,
     CommonLockModule,
     StreaksModule,
+    MoodModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [

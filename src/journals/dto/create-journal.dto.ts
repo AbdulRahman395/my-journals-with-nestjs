@@ -1,5 +1,6 @@
-import { IsDateString, IsOptional, IsString } from 'class-validator';
+import { IsDateString, IsOptional, IsString, IsEnum, IsNotEmpty } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Mood } from '../entities/journal.entity';
 
 export class CreateJournalDto {
   @ApiProperty({ description: 'Title of the journal entry', example: 'My Day at the Beach' })
@@ -21,8 +22,18 @@ export class CreateJournalDto {
   journalDate: string;
 
   @ApiProperty({ 
+    description: 'Mood of the journal entry', 
+    enum: Mood,
+    example: Mood.HAPPY,
+    required: true
+  })
+  @IsEnum(Mood)
+  @IsNotEmpty()
+  mood: Mood;
+
+  @ApiProperty({ 
     description: 'Additional metadata for the journal entry',
-    example: { mood: 'happy', weather: 'sunny' },
+    example: { weather: 'sunny', location: 'beach' },
     required: false 
   })
   @IsOptional()

@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/commo
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { FileUpload } from '../common/types/file.types';
-import { Journal } from './entities/journal.entity';
+import { Journal, Mood } from './entities/journal.entity';
 import { JournalMedia } from './entities/journal-media.entity';
 import { CreateJournalDto } from './dto/create-journal.dto';
 import { UpdateJournalDto } from './dto/update-journal.dto';
@@ -36,6 +36,7 @@ export class JournalsService {
         title: createJournalDto.title,
         content: createJournalDto.content,
         journal_date: new Date(createJournalDto.journalDate),
+        mood: createJournalDto.mood,
         user: { id: user.id },  // Just set the relation using the user object
         metadata: createJournalDto.metadata
       });

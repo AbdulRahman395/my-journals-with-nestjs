@@ -3,6 +3,13 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDa
 import { JournalMedia } from './journal-media.entity';
 import { encryptedColumn } from '../../common/services/encryption.service';
 
+export enum Mood {
+    HAPPY = 'Happy',
+    CALM = 'Calm',
+    NEUTRAL = 'Neutral',
+    SAD = 'Sad'
+}
+
 @Entity('journals')
 export class Journal {
     @PrimaryGeneratedColumn('increment')
@@ -27,6 +34,13 @@ export class Journal {
 
     @Column({ type: 'date' })
     journal_date: Date;
+
+    @Column({ 
+        type: 'enum', 
+        enum: Mood,
+        nullable: true
+    })
+    mood: Mood | null;
 
     @Column({ type: 'jsonb', nullable: true })
     metadata: Record<string, any> | null;
