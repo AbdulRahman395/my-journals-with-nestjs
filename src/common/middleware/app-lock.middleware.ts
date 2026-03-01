@@ -54,8 +54,8 @@ export class AppLockMiddleware implements NestMiddleware {
         return next();
       }
 
-      // If user has disabled locking, allow access
-      if (lock.preferences === LockPreference.OFF) {
+      // If user has disabled locking or set to immediately, allow access
+      if (lock.preferences === LockPreference.OFF || lock.preferences === LockPreference.IMMEDIATELY) {
         return next();
       }
 
