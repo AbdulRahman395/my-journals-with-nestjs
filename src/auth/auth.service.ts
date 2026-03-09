@@ -371,10 +371,7 @@ export class AuthService {
       const isOtpValid = await this.otpService.validateOTP(user.id, otp);
       if (!isOtpValid) {
         this.logger.log(`Invalid OTP for user: ${user.id}`);
-        return {
-          success: false,
-          message: 'Invalid or expired OTP',
-        };
+        throw new BadRequestException('Invalid or expired OTP. Please request a new one.');
       }
 
       // Update password
