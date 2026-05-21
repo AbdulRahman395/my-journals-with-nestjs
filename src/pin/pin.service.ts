@@ -1,6 +1,6 @@
-import { 
-  Injectable, 
-  UnauthorizedException, 
+import {
+  Injectable,
+  UnauthorizedException,
   ForbiddenException,
   ConflictException,
   NotFoundException,
@@ -15,9 +15,14 @@ import { ConfigService } from '@nestjs/config';
 import { Pin } from './entities/pin.entity';
 import { CreatePinDto } from './dto/create-pin.dto';
 import { VerifyPinDto } from './dto/verify-pin.dto';
+import { ChangePinDto, ChangePinResponseDto } from './dto/change-pin.dto';
+import { ForgetPinDto, ResetPinDto, ForgetPinResponseDto, ResetPinResponseDto } from './dto/forget-pin.dto';
 import { User } from '../users/entities/user.entity';
 import { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { LockService } from '../common/services/lock.service';
+import { OtpService } from '../users/otp.service';
+import { MailService } from '../mail/mail.service';
+import { sendPinResetEmail } from '../mail/templates/email.templates';
 
 @Injectable()
 export class PinService {
@@ -31,24 +36,26 @@ export class PinService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly lockService: LockService,
-  ) {}
+    private readonly otpService: OtpService,
+    private readonly mailService: MailService,
+  ) { }
 
   async createPin(user: User, createPinDto: CreatePinDto): Promise<{ accessToken: string }> {
     // Convert user.id to number if it's a string
     const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
-    
+
     // Check if user already has a PIN
-    const existingPin = await this.pinRepository.findOne({ 
-      where: { userId } 
+    const existingPin = await this.pinRepository.findOne({
+      where: { userId }
     });
-    
+
     if (existingPin) {
       throw new ConflictException('PIN already exists for this user');
     }
 
     // Hash the PIN
     const pinHash = await this.hashPin(createPinDto.pin);
-    
+
     // Create and save the PIN
     const pin = this.pinRepository.create({
       user,
@@ -69,8 +76,8 @@ export class PinService {
   async verifyPin(user: User, verifyPinDto: VerifyPinDto): Promise<{ accessToken: string }> {
     // Convert user.id to number if it's a string
     const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
-    
-    const pin = await this.pinRepository.findOne({ 
+
+    const pin = await this.pinRepository.findOne({
       where: { userId },
       relations: ['user']
     });
@@ -92,14 +99,14 @@ export class PinService {
     if (!isPinValid) {
       // Increment failed attempts
       pin.failedAttempts += 1;
-      
+
       // Lock the account if max attempts reached
       if (pin.failedAttempts >= this.MAX_ATTEMPTS) {
         pin.lockedUntil = new Date(Date.now() + this.LOCK_DURATION_MS);
       }
-      
+
       await this.pinRepository.save(pin);
-      
+
       const remainingAttempts = this.MAX_ATTEMPTS - pin.failedAttempts;
       if (remainingAttempts > 0) {
         throw new UnauthorizedException(
@@ -128,8 +135,8 @@ export class PinService {
   async hasPin(userId: number | string): Promise<boolean> {
     // Convert userId to number if it's a string
     const id = typeof userId === 'string' ? parseInt(userId, 10) : userId;
-    const pin = await this.pinRepository.findOne({ 
-      where: { userId: id } 
+    const pin = await this.pinRepository.findOne({
+      where: { userId: id }
     });
     return !!pin;
   }
@@ -137,10 +144,10 @@ export class PinService {
   async getPinStatus(userId: number | string): Promise<{ hasPin: boolean; isLocked: boolean; lockedUntil: Date | null }> {
     // Convert userId to number if it's a string
     const id = typeof userId === 'string' ? parseInt(userId, 10) : userId;
-    const pin = await this.pinRepository.findOne({ 
-      where: { userId: id } 
+    const pin = await this.pinRepository.findOne({
+      where: { userId: id }
     });
-    
+
     if (!pin) {
       return { hasPin: false, isLocked: false, lockedUntil: null };
     }
@@ -176,5 +183,133 @@ export class PinService {
     });
 
     return { accessToken };
+  }
+
+  async changePin(user: User, changePinDto: ChangePinDto): Promise<ChangePinResponseDto> {
+    const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+    
+    const pin = await this.pinRepository.findOne({
+      where: { userId },
+      select: ['id', 'pinHash', 'userId']
+    });
+
+    if (!pin) {
+      throw new NotFoundException('No PIN set for this user');
+    }
+
+    // Verify current PIN
+    const isPinValid = await bcrypt.compare(changePinDto.currentPin, pin.pinHash);
+
+    if (!isPinValid) {
+      throw new BadRequestException('Current PIN is incorrect');
+    }
+
+    // Check if new PIN is same as current PIN
+    const isSamePin = await bcrypt.compare(changePinDto.newPin, pin.pinHash);
+
+    if (isSamePin) {
+      throw new BadRequestException('New PIN cannot be the same as the current PIN');
+    }
+
+    // Hash and save new PIN
+    pin.pinHash = await this.hashPin(changePinDto.newPin);
+    await this.pinRepository.save(pin);
+
+    return {
+      success: true,
+      message: 'Your PIN has been changed successfully.'
+    };
+  }
+
+  async forgetPin(forgetPinDto: ForgetPinDto): Promise<ForgetPinResponseDto> {
+    try {
+      const user = await this.pinRepository.manager.getRepository(User).findOne({
+        where: { email: forgetPinDto.email }
+      });
+
+      // Don't reveal if user doesn't exist for security reasons
+      if (!user) {
+        return {
+          success: true,
+          message: 'If your email is registered, a PIN reset OTP has been sent to your email.'
+        };
+      }
+
+      // Generate OTP for PIN reset
+      const otp = await this.otpService.generateOTP(user);
+
+      if (!otp) {
+        throw new Error('Failed to generate OTP');
+      }
+
+      // Send PIN reset email
+      const isEmailSent = await sendPinResetEmail(
+        this.mailService,
+        user.email,
+        otp
+      );
+
+      if (!isEmailSent) {
+        throw new Error('Failed to send PIN reset email');
+      }
+
+      return {
+        success: true,
+        message: 'If your email is registered, a PIN reset OTP has been sent to your email.'
+      };
+    } catch (error) {
+      throw new BadRequestException('Failed to process PIN reset request');
+    }
+  }
+
+  async resetPin(resetPinDto: ResetPinDto): Promise<ResetPinResponseDto> {
+    try {
+      const user = await this.pinRepository.manager.getRepository(User).findOne({
+        where: { email: resetPinDto.email }
+      });
+
+      if (!user) {
+        // Don't reveal if user doesn't exist for security reasons
+        return {
+          success: true,
+          message: 'Your PIN has been reset successfully'
+        };
+      }
+
+      // Verify OTP
+      const isOtpValid = await this.otpService.validateOTP(user.id, resetPinDto.otp);
+      if (!isOtpValid) {
+        throw new BadRequestException('Invalid or expired OTP. Please request a new one.');
+      }
+
+      // Find user's PIN record
+      const pin = await this.pinRepository.findOne({
+        where: { userId: user.id }
+      });
+
+      if (!pin) {
+        throw new NotFoundException('No PIN set for this user');
+      }
+
+      // Hash and save new PIN
+      pin.pinHash = await this.hashPin(resetPinDto.newPin);
+      pin.failedAttempts = 0;
+      pin.lockedUntil = null;
+      pin.isResetVerified = false;
+      await this.pinRepository.save(pin);
+
+      // Mark OTP as used
+      await this.otpService.markOtpAsUsed(resetPinDto.otp);
+
+      return {
+        success: true,
+        message: 'Your PIN has been reset successfully'
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException('Failed to reset PIN');
+    }
   }
 }

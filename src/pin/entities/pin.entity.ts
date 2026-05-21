@@ -1,12 +1,12 @@
 import { User } from '../../users/entities/user.entity';
-import { 
-  Entity, 
-  PrimaryGeneratedColumn, 
-  Column, 
-  CreateDateColumn, 
-  UpdateDateColumn, 
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
   ManyToOne,
-  JoinColumn 
+  JoinColumn
 } from 'typeorm';
 
 @Entity('pins')
@@ -29,6 +29,9 @@ export class Pin {
 
   @Column({ name: 'locked_until', type: 'timestamp', nullable: true })
   lockedUntil: Date | null;
+
+  @Column({ name: 'is_reset_verified', default: false })
+  isResetVerified: boolean;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

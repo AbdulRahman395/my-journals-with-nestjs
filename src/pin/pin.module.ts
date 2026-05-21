@@ -8,12 +8,14 @@ import { PinController } from './pin.controller';
 import { Pin } from './entities/pin.entity';
 import { UsersModule } from '../users/users.module';
 import { CommonLockModule } from '../common/common-lock.module';
+import { MailModule } from '../mail/mail.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Pin]),
     UsersModule,
     CommonLockModule,
+    MailModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
@@ -27,4 +29,4 @@ import { CommonLockModule } from '../common/common-lock.module';
   providers: [PinService],
   exports: [PinService, JwtModule],
 })
-export class PinModule {}
+export class PinModule { }
