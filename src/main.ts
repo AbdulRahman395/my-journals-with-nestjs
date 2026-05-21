@@ -5,6 +5,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { Request, Response } from 'express';
 import { join } from 'path';
+import * as net from 'net';
 
 let server: any;
 
@@ -96,11 +97,53 @@ export default async function handler(req: Request, res: Response) {
 }
 
 /**
+ * Find an available port with retry logic
+ */
+async function findAvailablePort(startPort: number, maxAttempts: number = 100): Promise<number> {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const portToTry = startPort + attempt;
+
+    const isAvailable = await new Promise<boolean>((resolve) => {
+      const testServer = net.createServer();
+
+      testServer.once('error', (err: any) => {
+        if (err.code === 'EADDRINUSE') {
+          resolve(false);
+        } else {
+          resolve(false);
+        }
+      });
+
+      testServer.once('listening', () => {
+        testServer.close();
+        resolve(true);
+      });
+
+      testServer.listen(portToTry);
+    });
+
+    if (isAvailable) {
+      return portToTry;
+    }
+
+    console.log(`Port ${portToTry} is in use, trying next port...`);
+  }
+
+  throw new Error(`Could not find an available port after ${maxAttempts} attempts (tried ports ${startPort} to ${startPort + maxAttempts - 1})`);
+}
+
+/**
  * Local dev
  */
 if (!process.env.VERCEL) {
-  createServer().then(() => {
-    server.listen(3000);
-    console.log('🚀 Local server ready');
+  createServer().then(async (app) => {
+    const startPort = 3000;
+    const availablePort = await findAvailablePort(startPort);
+
+    app.listen(availablePort, () => {
+      console.log('🚀 Local server ready');
+      console.log(`🚀 Listening on http://localhost:${availablePort}`);
+      console.log(`🌐 Swagger documentation available at http://localhost:${availablePort}/docs`);
+    });
   });
 }
