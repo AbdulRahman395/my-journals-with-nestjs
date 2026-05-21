@@ -187,7 +187,7 @@ export class PinService {
 
   async changePin(user: User, changePinDto: ChangePinDto): Promise<ChangePinResponseDto> {
     const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
-    
+
     const pin = await this.pinRepository.findOne({
       where: { userId },
       select: ['id', 'pinHash', 'userId']
@@ -295,7 +295,6 @@ export class PinService {
       pin.pinHash = await this.hashPin(resetPinDto.newPin);
       pin.failedAttempts = 0;
       pin.lockedUntil = null;
-      pin.isResetVerified = false;
       await this.pinRepository.save(pin);
 
       // Mark OTP as used

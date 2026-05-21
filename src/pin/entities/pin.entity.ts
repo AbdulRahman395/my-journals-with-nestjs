@@ -30,9 +30,6 @@ export class Pin {
   @Column({ name: 'locked_until', type: 'timestamp', nullable: true })
   lockedUntil: Date | null;
 
-  @Column({ name: 'is_reset_verified', default: false })
-  isResetVerified: boolean;
-
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

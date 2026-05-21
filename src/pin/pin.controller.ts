@@ -97,7 +97,7 @@ export class PinController {
 
   @Post('change-pin')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Change user PIN',
     description: `Changes the PIN for the authenticated user.
     
@@ -148,7 +148,7 @@ export class PinController {
     status: HttpStatus.NOT_FOUND,
     description: 'No PIN set for this user',
   })
-  @ApiBody({ 
+  @ApiBody({
     type: ChangePinDto,
     examples: {
       validRequest: {
@@ -170,8 +170,8 @@ export class PinController {
   @Post('forget-pin')
   @HttpCode(HttpStatus.OK)
   @UseGuards()
-  @ApiOperation({ 
-    summary: 'Request PIN reset', 
+  @ApiOperation({
+    summary: 'Request PIN reset',
     description: `Initiates the PIN reset process by sending a reset OTP to the provided email address.
     
 **Note:** For security reasons, this endpoint will always return a success response (200) even if the email doesn't exist in our system.`
@@ -198,7 +198,7 @@ export class PinController {
     status: HttpStatus.BAD_REQUEST,
     description: 'Invalid email format or missing required fields',
   })
-  @ApiBody({ 
+  @ApiBody({
     type: ForgetPinDto,
     examples: {
       validEmail: {
@@ -257,7 +257,7 @@ export class PinController {
     status: HttpStatus.NOT_FOUND,
     description: 'No account found with the provided email',
   })
-  @ApiBody({ 
+  @ApiBody({
     type: ResetPinDto,
     examples: {
       validRequest: {
