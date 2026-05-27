@@ -14,7 +14,7 @@ export class Pin {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => User, user => user.id, { nullable: false })
+  @ManyToOne(() => User, user => user.pins, { nullable: false })
   @JoinColumn({ name: 'user_id' })
   user: User;
 

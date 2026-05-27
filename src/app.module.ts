@@ -55,19 +55,23 @@ export class AppModule implements NestModule {
         { path: 'auth/forgot-password', method: RequestMethod.ALL },
         { path: 'auth/reset-password', method: RequestMethod.ALL },
         { path: 'auth/resend-otp', method: RequestMethod.ALL },
-        
+
         // Public routes
         { path: '', method: RequestMethod.GET },
         { path: 'health', method: RequestMethod.GET },
-        
+
         // Swagger documentation
         { path: 'api', method: RequestMethod.ALL },
         { path: 'api-json', method: RequestMethod.ALL },
         { path: 'api/(.*)', method: RequestMethod.ALL },
-        
+
         // Public user registration and verification
         { path: 'auth/register', method: RequestMethod.ALL },
-        { path: 'auth/verify-account', method: RequestMethod.ALL }
+        { path: 'auth/verify-account', method: RequestMethod.ALL },
+
+        // Admin-only endpoints (use admin pass key guard instead)
+        { path: 'users', method: RequestMethod.GET },
+        { path: 'users/:id', method: RequestMethod.DELETE }
       )
       .forRoutes('*');
 
@@ -83,21 +87,21 @@ export class AppModule implements NestModule {
         { path: 'auth/reset-password', method: RequestMethod.ALL },
         { path: 'auth/resend-otp', method: RequestMethod.ALL },
         { path: 'auth/verify-account', method: RequestMethod.ALL },
-        
+
         // Lock preferences
         { path: 'lock/preferences', method: RequestMethod.ALL },
-        
+
         // PIN-related endpoints (need to be accessible for unlocking)
         { path: 'pin/create', method: RequestMethod.ALL },
         { path: 'pin/verify', method: RequestMethod.ALL },
         { path: 'pin/status', method: RequestMethod.ALL },
         { path: 'pin/has-pin', method: RequestMethod.ALL },
         { path: 'pin/protected', method: RequestMethod.ALL },
-        
+
         // Public routes
         { path: '', method: RequestMethod.GET },
         { path: 'health', method: RequestMethod.GET },
-        
+
         // Swagger documentation
         { path: 'api', method: RequestMethod.ALL },
         { path: 'api-json', method: RequestMethod.ALL },
