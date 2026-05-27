@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner, Table, Index, Unique } from 'typeorm';
 
-export class CreateUserStreaksTable1640000000001 implements MigrationInterface {
-  name = 'CreateUserStreaksTable1640000000001';
+export class CreateUserStreaksTable1771925506033 implements MigrationInterface {
+  name = 'CreateUserStreaksTable1771925506033';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Check if table already exists
