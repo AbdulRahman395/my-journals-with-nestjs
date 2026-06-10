@@ -1,7 +1,8 @@
-import { Injectable, Inject, forwardRef } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserStreak } from './entities/user-streak.entity';
+import { UserProfile } from '../profiles/entities/user-profile.entity';
 import { User } from '../users/entities/user.entity';
 
 @Injectable()
@@ -9,7 +10,18 @@ export class StreaksService {
   constructor(
     @InjectRepository(UserStreak)
     private readonly userStreakRepository: Repository<UserStreak>,
-  ) {}
+    @InjectRepository(UserProfile)
+    private readonly userProfileRepository: Repository<UserProfile>,
+  ) { }
+
+  /**
+   * Get today's date normalized to midnight in the user's timezone
+   */
+  private getTodayInTimezone(timezone: string): Date {
+    const now = new Date();
+    const localDateStr = now.toLocaleDateString('en-CA', { timeZone: timezone }); // gives "YYYY-MM-DD"
+    return new Date(localDateStr); // midnight UTC representation of local date
+  }
 
   /**
    * Get or create a streak record for a user
@@ -43,30 +55,30 @@ export class StreaksService {
    */
   async updateUserStreak(userId: number): Promise<UserStreak> {
     const streak = await this.getOrCreateUserStreak(userId);
-    
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
 
-    const lastActivityDate = streak.lastActivityDate 
-      ? new Date(streak.lastActivityDate) 
+    // Fetch user's timezone from profile, fallback to UTC
+    const profile = await this.userProfileRepository.findOne({
+      where: { user_id: userId },
+    });
+    const timezone = profile?.timezone ?? 'UTC';
+
+    const today = this.getTodayInTimezone(timezone);
+
+    const lastActivityDate = streak.lastActivityDate
+      ? new Date(new Date(streak.lastActivityDate).toLocaleDateString('en-CA', { timeZone: timezone }))
       : null;
-
-    if (lastActivityDate) {
-      lastActivityDate.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
-    }
 
     // Case 1: Already had activity today
     if (lastActivityDate && today.getTime() === lastActivityDate.getTime()) {
-      // Do nothing - streak remains the same
       return streak;
     }
 
-    // Case 2: Consecutive day (today == yesterday + 1 day)
+    // Case 2: Consecutive day (today == last_activity_date + 1 day)
     if (lastActivityDate) {
-      const yesterday = new Date(lastActivityDate);
-      yesterday.setDate(yesterday.getDate() + 1);
-      
-      if (today.getTime() === yesterday.getTime()) {
+      const nextDay = new Date(lastActivityDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+
+      if (today.getTime() === nextDay.getTime()) {
         streak.currentStreak += 1;
       } else {
         // Case 3: Streak broken - start new streak
@@ -79,7 +91,7 @@ export class StreaksService {
 
     // Always update longest streak
     streak.longestStreak = Math.max(streak.longestStreak, streak.currentStreak);
-    
+
     // Update last activity date
     streak.lastActivityDate = today;
 
@@ -104,7 +116,7 @@ export class StreaksService {
     streak.currentStreak = 0;
     streak.longestStreak = 0;
     streak.lastActivityDate = null;
-    
+
     return this.userStreakRepository.save(streak);
   }
 
@@ -121,7 +133,7 @@ export class StreaksService {
     const [totalUsers, activeUsers, streaks] = await Promise.all([
       this.userStreakRepository.count(),
       this.userStreakRepository.count({
-        where: { currentStreak: 1 }, // Users with at least 1 day streak
+        where: { currentStreak: 1 },
       }),
       this.userStreakRepository.find({
         order: { longestStreak: 'DESC' },

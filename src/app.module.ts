@@ -17,9 +17,12 @@ import { CommonLockModule } from './common/common-lock.module';
 import { StreaksModule } from './streaks/streaks.module';
 import { MoodModule } from './mood/mood.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { TimezoneMiddleware } from './auth/guards/timezone.guard';
+import { UserProfile } from './profiles/entities/user-profile.entity';
 
 @Module({
   imports: [
+    TypeOrmModule.forFeature([UserProfile]),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
@@ -108,5 +111,8 @@ export class AppModule implements NestModule {
         { path: 'api/(.*)', method: RequestMethod.ALL }
       )
       .forRoutes('*');
+    consumer
+      .apply(TimezoneMiddleware)
+      .forRoutes('*'); // No exclusions needed — it never throws error
   }
 }

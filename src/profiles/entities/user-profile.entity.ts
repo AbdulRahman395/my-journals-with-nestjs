@@ -21,6 +21,9 @@ export class UserProfile {
   @Column({ type: 'text', nullable: true })
   profile_picture: string | null;
 
+  @Column({ type: 'varchar', length: 100, default: 'UTC' })
+  timezone: string;
+
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
 
