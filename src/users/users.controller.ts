@@ -43,6 +43,30 @@ export class UsersController {
     return this.usersService.getAllProfilesPaginated(Number(page), Number(limit));
   }
 
+  // This endpoint is for verifying the admin pass key without performing any action, useful for testing and validation purposes
+  @Get('verify-admin-key')
+  @UseGuards(AdminPassKeyGuard)
+  @ApiOperation({ summary: 'Verify admin pass key validity (Admin only)' })
+  @ApiQuery({ name: 'adminPassKey', required: true, description: 'Admin pass key from environment' })
+  @ApiResponse({
+    status: 200,
+    description: 'Admin pass key is valid',
+    schema: {
+      properties: {
+        message: { type: 'string', example: 'Admin pass key verified' },
+        verified: { type: 'boolean', example: true }
+      }
+    }
+  })
+  @ApiResponse({ status: 400, description: 'adminPassKey query parameter is required' })
+  @ApiResponse({ status: 401, description: 'Invalid admin pass key' })
+  async verifyAdminKey() {
+    return {
+      message: 'Admin pass key verified',
+      verified: true,
+    };
+  }
+
   @Get(':id')
   async findOne(
     @Param('id', new ParseIntPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) id: number,

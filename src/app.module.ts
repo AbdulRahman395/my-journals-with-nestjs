@@ -74,7 +74,8 @@ export class AppModule implements NestModule {
 
         // Admin-only endpoints (use admin pass key guard instead)
         { path: 'users', method: RequestMethod.GET },
-        { path: 'users/:id', method: RequestMethod.DELETE }
+        { path: 'users/:id', method: RequestMethod.DELETE },
+        { path: 'users/verify-admin-key', method: RequestMethod.GET }
       )
       .forRoutes('*');
 
