@@ -21,7 +21,16 @@ export class UserStreak {
   @Column({ name: 'last_activity_date', type: 'date', nullable: true })
   lastActivityDate: Date | null;
 
-  @CreateDateColumn({ 
+  @Column({ name: 'freeze_count', type: 'integer', default: 0 })
+  freezeCount: number;
+
+  @Column({ name: 'frozen_date', type: 'date', nullable: true })
+  frozenDate: Date | null;
+
+  @Column({ name: 'last_freeze_milestone', type: 'integer', default: 0 })
+  lastFreezeMilestone: number;
+
+  @CreateDateColumn({
     name: 'created_at',
     type: 'timestamp with time zone',
     default: () => 'NOW()' 

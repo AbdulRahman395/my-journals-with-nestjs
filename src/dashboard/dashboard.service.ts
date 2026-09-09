@@ -2,15 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, Not, IsNull } from 'typeorm';
 import { Journal } from '../journals/entities/journal.entity';
-import { UserStreak } from '../streaks/entities/user-streak.entity';
+import { StreaksService } from '../streaks/streaks.service';
 
 @Injectable()
 export class DashboardService {
   constructor(
     @InjectRepository(Journal)
     private readonly journalRepository: Repository<Journal>,
-    @InjectRepository(UserStreak)
-    private readonly userStreakRepository: Repository<UserStreak>,
+    private readonly streaksService: StreaksService,
   ) {}
 
   private getWeekRange() {
@@ -27,7 +26,7 @@ export class DashboardService {
     const { startOfWeek, now } = this.getWeekRange();
 
     // Single query to get all journal data we need
-    const [totalJournals, weeklyJournals, userStreak] = await Promise.all([
+    const [totalJournals, weeklyJournals, streakEvaluation] = await Promise.all([
       this.journalRepository.count({ where: { user_id: userId } }),
       this.journalRepository.count({
         where: {
@@ -35,9 +34,7 @@ export class DashboardService {
           created_at: Between(startOfWeek, now)
         }
       }),
-      this.userStreakRepository.findOne({
-        where: { user: { id: userId } }
-      })
+      this.streaksService.evaluateStreakState(userId)
     ]);
 
     // Get most used mood this week (reuse existing logic)
@@ -67,7 +64,11 @@ export class DashboardService {
     return {
       totalJournals,
       journalsThisWeek: weeklyJournals,
-      writingStreak: userStreak?.currentStreak || 0,
+      writingStreak: streakEvaluation.currentStreak,
+      streakState: streakEvaluation.state,
+      isDimmed: streakEvaluation.isDimmed,
+      isFrozen: streakEvaluation.isFrozen,
+      freezeCount: streakEvaluation.freezeCount,
       moodThisWeek
     };
   }

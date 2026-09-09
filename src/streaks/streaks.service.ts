@@ -5,6 +5,24 @@ import { UserStreak } from './entities/user-streak.entity';
 import { UserProfile } from '../profiles/entities/user-profile.entity';
 import { User } from '../users/entities/user.entity';
 
+export type StreakState = 'new' | 'active' | 'pending' | 'frozen' | 'broken';
+
+export interface StreakEvaluation {
+  currentStreak: number;
+  longestStreak: number;
+  freezeCount: number;
+  state: StreakState;
+  isDimmed: boolean;
+  isFrozen: boolean;
+  lastActivityDate: Date | null;
+}
+
+export interface StreakUpdateResult extends StreakEvaluation {
+  freezeEarned?: boolean;
+}
+
+const MS_PER_DAY = 86_400_000;
+
 @Injectable()
 export class StreaksService {
   constructor(
@@ -21,6 +39,41 @@ export class StreaksService {
     const now = new Date();
     const localDateStr = now.toLocaleDateString('en-CA', { timeZone: timezone }); // gives "YYYY-MM-DD"
     return new Date(localDateStr); // midnight UTC representation of local date
+  }
+
+  /**
+   * Normalize an arbitrary date value to midnight in the user's timezone
+   */
+  private normalizeToTimezone(date: Date | string, timezone: string): Date {
+    return new Date(new Date(date).toLocaleDateString('en-CA', { timeZone: timezone }));
+  }
+
+  /**
+   * Resolve the user's timezone from their profile, defaulting to UTC
+   */
+  private async getUserTimezone(userId: number): Promise<string> {
+    const profile = await this.userProfileRepository.findOne({
+      where: { user_id: userId },
+    });
+    return profile?.timezone ?? 'UTC';
+  }
+
+  private toEvaluation(
+    streak: UserStreak,
+    state: StreakState,
+    isDimmed: boolean,
+    isFrozen: boolean,
+    currentStreakOverride?: number,
+  ): StreakEvaluation {
+    return {
+      currentStreak: currentStreakOverride ?? streak.currentStreak,
+      longestStreak: streak.longestStreak,
+      freezeCount: streak.freezeCount,
+      state,
+      isDimmed,
+      isFrozen,
+      lastActivityDate: streak.lastActivityDate,
+    };
   }
 
   /**
@@ -46,56 +99,130 @@ export class StreaksService {
   }
 
   /**
-   * Update user streak based on activity
-   * Implements the streak logic:
-   * 1. If today == last_activity_date → Do nothing
-   * 2. If today == last_activity_date + 1 → current_streak += 1
-   * 3. Otherwise → current_streak = 1
-   * Always update longest_streak = max(longest_streak, current_streak)
+   * Evaluate the true, read-time state of a user's streak, resolving any staleness
+   * against "today" without requiring a new journal entry. This is the single source
+   * of truth for streak freshness - reads and writes both build on top of it.
+   *
+   * - lastActivityDate is null            -> 'new'
+   * - diffDays === 0 (posted today)       -> 'active'
+   * - diffDays === 1 (posted yesterday)   -> 'pending'
+   * - diffDays === 2 (one day skipped)    -> 'frozen' (if a freeze is available/applied) or 'broken'
+   * - diffDays >= 3 (more than one day)   -> 'broken'
+   *
+   * Only writes to the DB when the stored state actually needs to change, so repeated
+   * calls on the same day are idempotent.
    */
-  async updateUserStreak(userId: number): Promise<UserStreak> {
+  async evaluateStreakState(userId: number): Promise<StreakEvaluation> {
     const streak = await this.getOrCreateUserStreak(userId);
 
-    // Fetch user's timezone from profile, fallback to UTC
-    const profile = await this.userProfileRepository.findOne({
-      where: { user_id: userId },
-    });
-    const timezone = profile?.timezone ?? 'UTC';
+    if (!streak.lastActivityDate) {
+      return this.toEvaluation(streak, 'new', true, false, 0);
+    }
 
+    const timezone = await this.getUserTimezone(userId);
+    const today = this.getTodayInTimezone(timezone);
+    const lastActivityDate = this.normalizeToTimezone(streak.lastActivityDate, timezone);
+    const diffDays = Math.round((today.getTime() - lastActivityDate.getTime()) / MS_PER_DAY);
+
+    // Already had activity today
+    if (diffDays === 0) {
+      return this.toEvaluation(streak, 'active', false, false);
+    }
+
+    // Posted yesterday, nothing missed yet - the rest of today is still available
+    if (diffDays === 1) {
+      return this.toEvaluation(streak, 'pending', true, false);
+    }
+
+    // Exactly one full calendar day was skipped - freeze-eligible
+    if (diffDays === 2) {
+      const skippedDate = new Date(lastActivityDate);
+      skippedDate.setDate(skippedDate.getDate() + 1);
+
+      const frozenDate = streak.frozenDate
+        ? this.normalizeToTimezone(streak.frozenDate, timezone)
+        : null;
+
+      // A freeze was already applied for this exact gap (idempotent re-evaluation)
+      if (frozenDate && frozenDate.getTime() === skippedDate.getTime()) {
+        return this.toEvaluation(streak, 'frozen', true, true);
+      }
+
+      if (streak.freezeCount > 0) {
+        streak.freezeCount -= 1;
+        streak.frozenDate = skippedDate;
+        await this.userStreakRepository.save(streak);
+        return this.toEvaluation(streak, 'frozen', true, true);
+      }
+
+      if (streak.currentStreak !== 0) {
+        streak.currentStreak = 0;
+        await this.userStreakRepository.save(streak);
+      }
+      return this.toEvaluation(streak, 'broken', true, false);
+    }
+
+    // More than one full day skipped - a freeze only ever covers a single missed day
+    if (streak.currentStreak !== 0) {
+      streak.currentStreak = 0;
+      await this.userStreakRepository.save(streak);
+    }
+    return this.toEvaluation(streak, 'broken', true, false);
+  }
+
+  /**
+   * Update user streak based on activity. Called once, right after a journal is
+   * successfully created. First normalizes any stale state via evaluateStreakState,
+   * then applies the "posted today" transition on top of the normalized state.
+   */
+  async updateUserStreak(userId: number): Promise<StreakUpdateResult> {
+    const evaluation = await this.evaluateStreakState(userId);
+
+    // Already posted today via an earlier journal entry - idempotent, nothing to do
+    if (evaluation.state === 'active') {
+      return { ...evaluation, freezeEarned: false };
+    }
+
+    // Reload the streak row since evaluateStreakState may have mutated it
+    const streak = await this.getOrCreateUserStreak(userId);
+    const timezone = await this.getUserTimezone(userId);
     const today = this.getTodayInTimezone(timezone);
 
-    const lastActivityDate = streak.lastActivityDate
-      ? new Date(new Date(streak.lastActivityDate).toLocaleDateString('en-CA', { timeZone: timezone }))
-      : null;
-
-    // Case 1: Already had activity today
-    if (lastActivityDate && today.getTime() === lastActivityDate.getTime()) {
-      return streak;
-    }
-
-    // Case 2: Consecutive day (today == last_activity_date + 1 day)
-    if (lastActivityDate) {
-      const nextDay = new Date(lastActivityDate);
-      nextDay.setDate(nextDay.getDate() + 1);
-
-      if (today.getTime() === nextDay.getTime()) {
-        streak.currentStreak += 1;
-      } else {
-        // Case 3: Streak broken - start new streak
-        streak.currentStreak = 1;
-      }
+    if (evaluation.state === 'pending') {
+      streak.currentStreak += 1;
+      streak.lastActivityDate = today;
+    } else if (evaluation.state === 'frozen') {
+      // The gap was just covered by a freeze; posting today continues the streak
+      streak.currentStreak += 1;
+      streak.lastActivityDate = today;
+      streak.frozenDate = null;
     } else {
-      // First activity ever
+      // 'broken' or 'new'
       streak.currentStreak = 1;
+      streak.lastActivityDate = today;
+      streak.frozenDate = null;
     }
 
-    // Always update longest streak
     streak.longestStreak = Math.max(streak.longestStreak, streak.currentStreak);
 
-    // Update last activity date
-    streak.lastActivityDate = today;
+    let freezeEarned = false;
+    if (streak.currentStreak % 30 === 0) {
+      const milestone = streak.currentStreak / 30;
+      if (milestone > streak.lastFreezeMilestone) {
+        streak.lastFreezeMilestone = milestone;
+        if (streak.freezeCount < 3) {
+          streak.freezeCount += 1;
+          freezeEarned = true;
+        }
+      }
+    }
 
-    return this.userStreakRepository.save(streak);
+    const saved = await this.userStreakRepository.save(streak);
+
+    return {
+      ...this.toEvaluation(saved, 'active', false, false),
+      freezeEarned,
+    };
   }
 
   /**
@@ -116,6 +243,9 @@ export class StreaksService {
     streak.currentStreak = 0;
     streak.longestStreak = 0;
     streak.lastActivityDate = null;
+    streak.freezeCount = 0;
+    streak.frozenDate = null;
+    streak.lastFreezeMilestone = 0;
 
     return this.userStreakRepository.save(streak);
   }

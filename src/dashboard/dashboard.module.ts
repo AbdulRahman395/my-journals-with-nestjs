@@ -3,10 +3,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { DashboardController } from './dashboard.controller';
 import { DashboardService } from './dashboard.service';
 import { Journal } from '../journals/entities/journal.entity';
-import { UserStreak } from '../streaks/entities/user-streak.entity';
+import { StreaksModule } from '../streaks/streaks.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Journal, UserStreak])],
+  imports: [TypeOrmModule.forFeature([Journal]), StreaksModule],
   controllers: [DashboardController],
   providers: [DashboardService],
   exports: [DashboardService],

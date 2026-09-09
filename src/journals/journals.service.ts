@@ -44,7 +44,7 @@ export class JournalsService {
       const savedJournal = await this.journalRepository.save(journal);
 
       // Update user streak after successful journal creation
-      await this.streaksService.updateUserStreak(user.id);
+      const streak = await this.streaksService.updateUserStreak(user.id);
 
       // Upload files to Cloudinary and save media references
       if (files && files.length > 0) {
@@ -70,10 +70,23 @@ export class JournalsService {
       }
 
       // Reload the journal with relations
-      return this.journalRepository.findOne({
+      const reloadedJournal = await this.journalRepository.findOneOrFail({
         where: { id: savedJournal.id },
         relations: ['media'],
       });
+
+      return {
+        ...reloadedJournal,
+        streak: {
+          currentStreak: streak.currentStreak,
+          longestStreak: streak.longestStreak,
+          freezeCount: streak.freezeCount,
+          state: streak.state,
+          isDimmed: streak.isDimmed,
+          isFrozen: streak.isFrozen,
+          freezeEarned: streak.freezeEarned ?? false,
+        },
+      };
 
     } catch (error) {
       console.error('Error creating journal:', error);

@@ -31,11 +31,7 @@ export class StreaksController {
   @ApiResponse({ status: 200, description: 'Returns user streak information', type: UserStreakResponseDto })
   @ApiResponse({ status: 404, description: 'User streak not found' })
   async getMyStreak(@CurrentUser() user: User) {
-    const streak = await this.streaksService.getUserStreak(user.id);
-    if (!streak) {
-      return { currentStreak: 0 };
-    }
-    return { currentStreak: streak.currentStreak };
+    return this.streaksService.evaluateStreakState(user.id);
   }
 
   @Post('update')

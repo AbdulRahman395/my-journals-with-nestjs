@@ -23,6 +23,32 @@ export class JournalMediaResponseDto {
   }
 }
 
+export class JournalStreakInfoDto {
+  @ApiProperty({ description: 'Current streak count after this journal entry' })
+  currentStreak: number;
+
+  @ApiProperty({ description: 'Longest streak achieved' })
+  longestStreak: number;
+
+  @ApiProperty({ description: 'Number of streak freezes available (0-3)' })
+  freezeCount: number;
+
+  @ApiProperty({
+    description: 'Read-time evaluated streak state',
+    enum: ['new', 'active', 'pending', 'frozen', 'broken'],
+  })
+  state: string;
+
+  @ApiProperty({ description: 'Whether the streak should be shown as dimmed' })
+  isDimmed: boolean;
+
+  @ApiProperty({ description: 'Whether a streak freeze is currently covering a missed day' })
+  isFrozen: boolean;
+
+  @ApiProperty({ description: 'Whether this journal entry earned a new streak freeze' })
+  freezeEarned: boolean;
+}
+
 export class JournalResponseDto {
   @ApiProperty({ description: 'Unique identifier of the journal entry' })
   id: string;
@@ -45,11 +71,18 @@ export class JournalResponseDto {
   @ApiProperty({ description: 'Last update timestamp' })
   updated_at: Date;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'List of media files associated with the journal entry',
     type: [JournalMediaResponseDto],
   })
   media: JournalMediaResponseDto[];
+
+  @ApiProperty({
+    description: 'Streak state after this journal entry was created',
+    type: JournalStreakInfoDto,
+    required: false,
+  })
+  streak?: JournalStreakInfoDto;
 
   constructor(journal: Journal) {
     this.id = journal.id.toString();
