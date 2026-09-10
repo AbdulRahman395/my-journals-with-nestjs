@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, Repository } from 'typeorm';
 import { UserStreak } from './entities/user-streak.entity';
@@ -284,6 +284,71 @@ export class StreaksService {
 
     const history: StreakDayHistoryEntry[] = [];
     for (let i = 0; i < clampedDays; i++) {
+      const date = new Date(startDate);
+      date.setDate(date.getDate() + i);
+      const dateStr = date.toISOString().slice(0, 10);
+      history.push({ date: dateStr, type: eventsByDate.get(dateStr) ?? 'empty' });
+    }
+
+    return history;
+  }
+
+  /**
+   * Get the day-by-day streak history for a specific calendar month (in the
+   * user's timezone), oldest first. Mirrors getRecentDayHistory's shape and
+   * gap-filling ('empty' for days with no matching event), but for an
+   * arbitrary month/year instead of a trailing N-day window. The current,
+   * partially-elapsed month is capped at today so no future dates are
+   * returned; any month after the user's current month is rejected outright.
+   */
+  async getMonthDayHistory(
+    userId: number,
+    month: number,
+    year: number,
+  ): Promise<StreakDayHistoryEntry[]> {
+    if (!Number.isInteger(month) || month < 1 || month > 12) {
+      throw new BadRequestException('month must be an integer between 1 and 12');
+    }
+    if (!Number.isInteger(year)) {
+      throw new BadRequestException('year must be a valid integer');
+    }
+
+    const timezone = await this.getUserTimezone(userId);
+    const today = this.getTodayInTimezone(timezone);
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth() + 1;
+
+    if (year > currentYear || (year === currentYear && month > currentMonth)) {
+      throw new BadRequestException('Cannot fetch streak history for a future month');
+    }
+
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const startDate = new Date(`${year}-${pad(month)}-01`);
+    const daysInMonth = new Date(year, month, 0).getDate();
+    let endDate = new Date(`${year}-${pad(month)}-${pad(daysInMonth)}`);
+
+    const isCurrentMonth = year === currentYear && month === currentMonth;
+    if (isCurrentMonth && endDate.getTime() > today.getTime()) {
+      endDate = today;
+    }
+
+    const events = await this.streakDayEventRepository.find({
+      where: {
+        user: { id: userId },
+        eventDate: Between(startDate, endDate),
+      },
+    });
+
+    const eventsByDate = new Map<string, StreakDayEventType>(
+      events.map((event) => [
+        this.normalizeToTimezone(event.eventDate, timezone).toISOString().slice(0, 10),
+        event.eventType,
+      ]),
+    );
+
+    const history: StreakDayHistoryEntry[] = [];
+    const totalDays = Math.round((endDate.getTime() - startDate.getTime()) / MS_PER_DAY) + 1;
+    for (let i = 0; i < totalDays; i++) {
       const date = new Date(startDate);
       date.setDate(date.getDate() + i);
       const dateStr = date.toISOString().slice(0, 10);

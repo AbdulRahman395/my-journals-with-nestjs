@@ -1,9 +1,10 @@
-import { Controller, Get, Post, UseGuards, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { BadRequestException, Controller, Get, Post, UseGuards, Query } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { StreaksService } from './streaks.service';
 import { User } from '../users/entities/user.entity';
 import { UserStreakResponseDto } from './dto/user-streak-response.dto';
 import { StreakDayEventDto } from './dto/streak-day-event.dto';
+import { GetStreakHistoryQueryDto } from './dto/get-streak-history-query.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { PinVerifiedGuard } from '../auth/guards/pin-verified.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
@@ -36,13 +37,31 @@ export class StreaksController {
   }
 
   @Get('history')
-  @ApiOperation({ summary: 'Get recent day-by-day streak history for the authenticated user' })
+  @ApiOperation({
+    summary: 'Get day-by-day streak history for the authenticated user',
+    description:
+      'Defaults to the last `days` calendar days ending today. Pass `month` and `year` together ' +
+      'instead to fetch a specific calendar month (the current month is capped at today).',
+  })
+  @ApiQuery({ name: 'days', required: false, type: Number, description: 'Trailing day count (1-31), ignored if month/year are provided' })
+  @ApiQuery({ name: 'month', required: false, type: Number, description: 'Calendar month (1-12), must be paired with year' })
+  @ApiQuery({ name: 'year', required: false, type: Number, description: 'Calendar year, must be paired with month' })
   @ApiResponse({ status: 200, description: 'Returns the day-by-day streak history', type: [StreakDayEventDto] })
+  @ApiResponse({ status: 400, description: 'Invalid or incomplete month/year range' })
   async getHistory(
     @CurrentUser() user: User,
-    @Query('days') days?: string,
+    @Query() query: GetStreakHistoryQueryDto,
   ) {
-    return this.streaksService.getRecentDayHistory(user.id, days ? Number(days) : undefined);
+    const { days, month, year } = query;
+
+    if (month !== undefined || year !== undefined) {
+      if (month === undefined || year === undefined) {
+        throw new BadRequestException('month and year must be supplied together');
+      }
+      return this.streaksService.getMonthDayHistory(user.id, month, year);
+    }
+
+    return this.streaksService.getRecentDayHistory(user.id, days);
   }
 
   @Post('update')
