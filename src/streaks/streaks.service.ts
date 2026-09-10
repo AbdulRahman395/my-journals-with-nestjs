@@ -1,11 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 import { UserStreak } from './entities/user-streak.entity';
+import { StreakDayEvent, StreakDayEventType } from './entities/streak-day-event.entity';
 import { UserProfile } from '../profiles/entities/user-profile.entity';
 import { User } from '../users/entities/user.entity';
 
 export type StreakState = 'new' | 'active' | 'pending' | 'frozen' | 'broken';
+
+export interface StreakDayHistoryEntry {
+  date: string;
+  type: 'empty' | StreakDayEventType;
+}
 
 export interface StreakEvaluation {
   currentStreak: number;
@@ -28,6 +34,8 @@ export class StreaksService {
   constructor(
     @InjectRepository(UserStreak)
     private readonly userStreakRepository: Repository<UserStreak>,
+    @InjectRepository(StreakDayEvent)
+    private readonly streakDayEventRepository: Repository<StreakDayEvent>,
     @InjectRepository(UserProfile)
     private readonly userProfileRepository: Repository<UserProfile>,
   ) { }
@@ -56,6 +64,26 @@ export class StreaksService {
       where: { user_id: userId },
     });
     return profile?.timezone ?? 'UTC';
+  }
+
+  /**
+   * Permanently record the outcome of a streak-relevant day. Relies on the
+   * UNIQUE (user_id, event_date) constraint so this is safe to call more than
+   * once for the same user/day - the first recorded outcome always wins and
+   * later calls never overwrite it.
+   */
+  private async recordDayEvent(
+    userId: number,
+    eventDate: Date,
+    eventType: StreakDayEventType,
+  ): Promise<void> {
+    const dateStr = eventDate.toISOString().slice(0, 10);
+    await this.streakDayEventRepository.query(
+      `INSERT INTO streak_day_events (user_id, event_date, event_type)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (user_id, event_date) DO NOTHING`,
+      [userId, dateStr, eventType],
+    );
   }
 
   private toEvaluation(
@@ -152,6 +180,7 @@ export class StreaksService {
         streak.freezeCount -= 1;
         streak.frozenDate = skippedDate;
         await this.userStreakRepository.save(streak);
+        await this.recordDayEvent(userId, skippedDate, 'frozen');
         return this.toEvaluation(streak, 'frozen', true, true);
       }
 
@@ -218,11 +247,50 @@ export class StreaksService {
     }
 
     const saved = await this.userStreakRepository.save(streak);
+    await this.recordDayEvent(userId, today, 'active');
 
     return {
       ...this.toEvaluation(saved, 'active', false, false),
       freezeEarned,
     };
+  }
+
+  /**
+   * Get the last `days` calendar days (ending today, in the user's timezone),
+   * oldest first, with each day's finalized outcome: 'active' (a real journal
+   * was posted), 'frozen' (a freeze covered the day), or 'empty' (neither).
+   */
+  async getRecentDayHistory(userId: number, days = 7): Promise<StreakDayHistoryEntry[]> {
+    const clampedDays = Math.min(Math.max(Number.isFinite(days) ? days : 7, 1), 31);
+    const timezone = await this.getUserTimezone(userId);
+    const today = this.getTodayInTimezone(timezone);
+
+    const startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - (clampedDays - 1));
+
+    const events = await this.streakDayEventRepository.find({
+      where: {
+        user: { id: userId },
+        eventDate: Between(startDate, today),
+      },
+    });
+
+    const eventsByDate = new Map<string, StreakDayEventType>(
+      events.map((event) => [
+        this.normalizeToTimezone(event.eventDate, timezone).toISOString().slice(0, 10),
+        event.eventType,
+      ]),
+    );
+
+    const history: StreakDayHistoryEntry[] = [];
+    for (let i = 0; i < clampedDays; i++) {
+      const date = new Date(startDate);
+      date.setDate(date.getDate() + i);
+      const dateStr = date.toISOString().slice(0, 10);
+      history.push({ date: dateStr, type: eventsByDate.get(dateStr) ?? 'empty' });
+    }
+
+    return history;
   }
 
   /**

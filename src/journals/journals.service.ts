@@ -45,6 +45,7 @@ export class JournalsService {
 
       // Update user streak after successful journal creation
       const streak = await this.streaksService.updateUserStreak(user.id);
+      const last7Days = await this.streaksService.getRecentDayHistory(user.id);
 
       // Upload files to Cloudinary and save media references
       if (files && files.length > 0) {
@@ -85,6 +86,7 @@ export class JournalsService {
           isDimmed: streak.isDimmed,
           isFrozen: streak.isFrozen,
           freezeEarned: streak.freezeEarned ?? false,
+          last7Days,
         },
       };
 

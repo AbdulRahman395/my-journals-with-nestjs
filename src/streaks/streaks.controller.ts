@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagg
 import { StreaksService } from './streaks.service';
 import { User } from '../users/entities/user.entity';
 import { UserStreakResponseDto } from './dto/user-streak-response.dto';
+import { StreakDayEventDto } from './dto/streak-day-event.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { PinVerifiedGuard } from '../auth/guards/pin-verified.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
@@ -32,6 +33,16 @@ export class StreaksController {
   @ApiResponse({ status: 404, description: 'User streak not found' })
   async getMyStreak(@CurrentUser() user: User) {
     return this.streaksService.evaluateStreakState(user.id);
+  }
+
+  @Get('history')
+  @ApiOperation({ summary: 'Get recent day-by-day streak history for the authenticated user' })
+  @ApiResponse({ status: 200, description: 'Returns the day-by-day streak history', type: [StreakDayEventDto] })
+  async getHistory(
+    @CurrentUser() user: User,
+    @Query('days') days?: string,
+  ) {
+    return this.streaksService.getRecentDayHistory(user.id, days ? Number(days) : undefined);
   }
 
   @Post('update')

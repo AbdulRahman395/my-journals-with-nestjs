@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Journal } from '../entities/journal.entity';
 import { JournalMedia } from '../entities/journal-media.entity';
+import { StreakDayEventDto } from '../../streaks/dto/streak-day-event.dto';
 
 export class JournalMediaResponseDto {
   @ApiProperty({ description: 'Unique identifier of the media' })
@@ -47,6 +48,12 @@ export class JournalStreakInfoDto {
 
   @ApiProperty({ description: 'Whether this journal entry earned a new streak freeze' })
   freezeEarned: boolean;
+
+  @ApiProperty({
+    description: 'Day-by-day outcome for the last 7 calendar days, oldest first',
+    type: [StreakDayEventDto],
+  })
+  last7Days: StreakDayEventDto[];
 }
 
 export class JournalResponseDto {
