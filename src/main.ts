@@ -55,6 +55,11 @@ async function createServer() {
         return callback(null, true);
       }
 
+      // Allow the Notevia mobile app (Capacitor web view: Android / iOS)
+      if (origin === 'https://localhost' || origin === 'capacitor://localhost') {
+        return callback(null, true);
+      }
+
       // Allow all Vercel deployments
       if (origin.endsWith('.vercel.app')) {
         return callback(null, true);
