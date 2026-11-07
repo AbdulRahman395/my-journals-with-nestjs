@@ -8,6 +8,7 @@ import { ResetPasswordDto, ResetPasswordResponseDto } from './dto/reset-password
 import { ResendOtpDto, ResendOtpResponseDto } from './dto/resend-otp.dto';
 import { ChangePasswordDto, ChangePasswordResponseDto } from './dto/change-password.dto';
 import { RegisterDto, RegisterResponseDto, VerifyAccountDto, VerifyAccountResponseDto } from './dto/register.dto';
+import { GoogleLoginDto, GoogleLoginResponseDto } from './dto/google-login.dto';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -122,6 +123,32 @@ export class AuthController {
   })
   async login(@Body() loginDto: LoginDto): Promise<LoginResponseDto> {
     return this.authService.login(loginDto);
+  }
+
+  @Post('google')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Continue with Google',
+    description: `Signs in with a Google ID token from Google Identity Services and returns the same JWT as /auth/login.
+
+Creates a new account on first use, or links an existing account with the same email (Google must report the email as verified). No email OTP is needed.`,
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Signed in with Google',
+    type: GoogleLoginResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'The Google token is invalid or expired, or the Google email is not verified',
+  })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: 'This email is already linked to a different Google account',
+  })
+  @ApiBody({ type: GoogleLoginDto })
+  async googleLogin(@Body() googleLoginDto: GoogleLoginDto): Promise<GoogleLoginResponseDto> {
+    return this.authService.googleLogin(googleLoginDto.idToken);
   }
 
   @Post('forgot-password')

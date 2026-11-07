@@ -14,8 +14,13 @@ export class User {
   @Column({ type: 'varchar', length: 255, unique: true, nullable: false })
   email!: string;
 
-  @Column({ type: 'text', name: 'password_hash', nullable: false })
-  passwordHash!: string;
+  // Null for accounts that only sign in with Google
+  @Column({ type: 'text', name: 'password_hash', nullable: true })
+  passwordHash!: string | null;
+
+  // Google's permanent user ID ("sub" in the ID token); set once the account is linked to Google
+  @Column({ type: 'varchar', length: 255, name: 'google_id', unique: true, nullable: true })
+  googleId!: string | null;
 
   @Column({
     name: 'is_email_verified',

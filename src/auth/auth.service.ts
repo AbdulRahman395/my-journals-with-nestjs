@@ -17,10 +17,14 @@ import { MailService } from '../mail/mail.service';
 import { ProfilesService } from '../profiles/profiles.service';
 import { LockService } from '../common/services/lock.service';
 import { StreaksService } from '../streaks/streaks.service';
+import { OAuth2Client, TokenPayload } from 'google-auth-library';
+import { GoogleLoginResponseDto } from './dto/google-login.dto';
 
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
+  // Only verifies ID tokens, so it needs no client ID or secret here
+  private readonly googleClient = new OAuth2Client();
 
   constructor(
     @InjectRepository(User)
@@ -161,10 +165,11 @@ export class AuthService {
 
   async validateUser(email: string, password: string): Promise<User | null> {
     const user = await this.usersRepository.findOne({ where: { email } });
-    if (!user) {
+    // Google-only accounts have no password to check
+    if (!user || !user.passwordHash) {
       return null;
     }
-    
+
     const isPasswordValid = await PasswordUtils.comparePasswords(password, user.passwordHash);
     if (!isPasswordValid) {
       return null;
@@ -184,6 +189,12 @@ export class AuthService {
     // Check if email is verified
     if (!user.isEmailVerified) {
       throw new ForbiddenException('Please verify your account first');
+    }
+
+    if (!user.passwordHash) {
+      throw new UnauthorizedException(
+        'This account uses Continue with Google. Sign in with Google, or use "Forgot password?" to set a password.',
+      );
     }
 
     // Validate password
@@ -218,6 +229,142 @@ export class AuthService {
         isEmailVerified: user.isEmailVerified,
       },
     };
+  }
+
+  async googleLogin(idToken: string): Promise<GoogleLoginResponseDto> {
+    const google = await this.verifyGoogleIdToken(idToken);
+
+    let isNewUser = false;
+    let user = await this.usersRepository.findOne({ where: { googleId: google.sub } });
+
+    if (!user) {
+      // Emails are matched without case, since it is the same mailbox
+      const userByEmail = await this.usersRepository
+        .createQueryBuilder('user')
+        .where('LOWER(user.email) = LOWER(:email)', { email: google.email })
+        .getOne();
+
+      if (userByEmail) {
+        if (userByEmail.googleId && userByEmail.googleId !== google.sub) {
+          throw new ConflictException('This email is already linked to a different Google account');
+        }
+
+        // Google has verified this email, so it is safe to link it to the existing account
+        userByEmail.googleId = google.sub;
+        if (!userByEmail.isEmailVerified) {
+          // Whoever registered this email never proved they own it, so their password can't be trusted
+          userByEmail.passwordHash = null;
+          userByEmail.isEmailVerified = true;
+        }
+        user = await this.usersRepository.save(userByEmail);
+        this.logger.log(`Linked Google account to user: ${user.id}`);
+      } else {
+        try {
+          user = await this.usersRepository.save(
+            this.usersRepository.create({
+              email: google.email,
+              passwordHash: null,
+              googleId: google.sub,
+              isEmailVerified: true,
+            }),
+          );
+        } catch (error) {
+          // Two sign-ins for the same new Google account at once: the other one created the user
+          if ((error as any)?.code === '23505') {
+            throw new ConflictException('Your account is being set up. Please try again.');
+          }
+          throw error;
+        }
+        isNewUser = true;
+        this.logger.log(`Created user from Google sign-in: ${user.id}`);
+
+        try {
+          await this.profilesService.createDefaultProfile(user.id, google.name);
+        } catch (profileError) {
+          this.logger.error(`Failed to create default profile for user: ${user.id}`, profileError);
+        }
+      }
+    }
+
+    // Accounts that never finished email verification don't have these yet; both calls are safe to repeat
+    try {
+      await this.lockService.createDefaultLock(user.id);
+    } catch (lockError) {
+      this.logger.error(`Failed to create default lock record for user: ${user.id}`, lockError);
+    }
+    try {
+      await this.streaksService.getOrCreateUserStreak(user.id);
+    } catch (streakError) {
+      this.logger.error(`Failed to create default streak record for user: ${user.id}`, streakError);
+    }
+
+    return {
+      success: true,
+      message: 'Login successful',
+      token: this.signToken(user),
+      isNewUser,
+      user: {
+        id: user.id,
+        email: user.email,
+        isEmailVerified: user.isEmailVerified,
+      },
+    };
+  }
+
+  // Checks the token's signature, expiry, audience (our client ID) and issuer, and that Google verified the email
+  private async verifyGoogleIdToken(
+    idToken: string,
+  ): Promise<{ sub: string; email: string; name?: string }> {
+    const clientIds = (this.configService.get<string>('GOOGLE_CLIENT_ID') || '')
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean);
+
+    if (clientIds.length === 0) {
+      this.logger.error('GOOGLE_CLIENT_ID is not set');
+      throw new InternalServerErrorException('Google sign-in is not configured');
+    }
+
+    let payload: TokenPayload | undefined;
+    try {
+      const ticket = await this.googleClient.verifyIdToken({ idToken, audience: clientIds });
+      payload = ticket.getPayload();
+    } catch (error) {
+      this.logger.warn(`Google ID token rejected: ${(error as Error)?.message}`);
+      throw new UnauthorizedException('Invalid or expired Google sign-in. Please try again.');
+    }
+
+    if (
+      !payload ||
+      !payload.sub ||
+      !payload.email ||
+      !['accounts.google.com', 'https://accounts.google.com'].includes(payload.iss)
+    ) {
+      throw new UnauthorizedException('Invalid Google sign-in. Please try again.');
+    }
+
+    if (payload.email_verified !== true) {
+      throw new UnauthorizedException('Your Google email address is not verified');
+    }
+
+    return { sub: payload.sub, email: payload.email, name: payload.name };
+  }
+
+  private signToken(user: User): string {
+    const payload = {
+      sub: user.id.toString(),
+      email: user.email,
+      isEmailVerified: user.isEmailVerified,
+      pinVerified: false,
+    };
+
+    return this.jwtService.sign(
+      payload,
+      {
+        secret: this.configService.get<string>('JWT_SECRET'),
+        expiresIn: this.configService.get<string>('JWT_EXPIRES_IN') || '7d',
+      } as any,
+    );
   }
 
   async forgotPassword(email: string): Promise<ForgotPasswordResponseDto> {
@@ -326,6 +473,12 @@ export class AuthService {
 
     if (!user) {
       throw new NotFoundException('User not found');
+    }
+
+    if (!user.passwordHash) {
+      throw new BadRequestException(
+        'Your account signs in with Google and has no password yet. Use "Forgot password?" on the login page to set one.',
+      );
     }
 
     // Verify current password

@@ -54,6 +54,7 @@ export class AppModule implements NestModule {
         // Public auth endpoints
         { path: 'auth/signup', method: RequestMethod.ALL },
         { path: 'auth/login', method: RequestMethod.ALL },
+        { path: 'auth/google', method: RequestMethod.ALL },
         { path: 'auth/refresh', method: RequestMethod.ALL },
         { path: 'auth/forgot-password', method: RequestMethod.ALL },
         { path: 'auth/reset-password', method: RequestMethod.ALL },
@@ -86,6 +87,7 @@ export class AppModule implements NestModule {
         // Public auth endpoints
         { path: 'auth/signup', method: RequestMethod.ALL },
         { path: 'auth/login', method: RequestMethod.ALL },
+        { path: 'auth/google', method: RequestMethod.ALL },
         { path: 'auth/refresh', method: RequestMethod.ALL },
         { path: 'auth/forgot-password', method: RequestMethod.ALL },
         { path: 'auth/reset-password', method: RequestMethod.ALL },
