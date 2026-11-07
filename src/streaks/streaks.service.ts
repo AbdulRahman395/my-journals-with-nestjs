@@ -5,12 +5,15 @@ import { UserStreak } from './entities/user-streak.entity';
 import { StreakDayEvent, StreakDayEventType } from './entities/streak-day-event.entity';
 import { UserProfile } from '../profiles/entities/user-profile.entity';
 import { User } from '../users/entities/user.entity';
+import { Journal } from '../journals/entities/journal.entity';
 
 export type StreakState = 'new' | 'active' | 'pending' | 'frozen' | 'broken';
 
 export interface StreakDayHistoryEntry {
   date: string;
   type: 'empty' | StreakDayEventType;
+  /** Number of journals whose journal_date is this day */
+  count: number;
 }
 
 export interface StreakEvaluation {
@@ -38,7 +41,33 @@ export class StreaksService {
     private readonly streakDayEventRepository: Repository<StreakDayEvent>,
     @InjectRepository(UserProfile)
     private readonly userProfileRepository: Repository<UserProfile>,
+    @InjectRepository(Journal)
+    private readonly journalRepository: Repository<Journal>,
   ) { }
+
+  /**
+   * Count the user's journals per journal_date between two YYYY-MM-DD dates (inclusive).
+   * journal_date is a plain date column, so no timezone conversion is needed.
+   */
+  private async getJournalCountsByDate(
+    userId: number,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<Map<string, number>> {
+    const rows: { date: string; count: string }[] = await this.journalRepository
+      .createQueryBuilder('journal')
+      .select("to_char(journal.journal_date, 'YYYY-MM-DD')", 'date')
+      .addSelect('COUNT(*)', 'count')
+      .where('journal.user_id = :userId', { userId })
+      .andWhere('journal.journal_date BETWEEN :start AND :end', {
+        start: startDate.toISOString().slice(0, 10),
+        end: endDate.toISOString().slice(0, 10),
+      })
+      .groupBy('journal.journal_date')
+      .getRawMany();
+
+    return new Map(rows.map((row) => [row.date, Number(row.count)]));
+  }
 
   /**
    * Get today's date normalized to midnight in the user's timezone
@@ -268,12 +297,15 @@ export class StreaksService {
     const startDate = new Date(today);
     startDate.setDate(startDate.getDate() - (clampedDays - 1));
 
-    const events = await this.streakDayEventRepository.find({
-      where: {
-        user: { id: userId },
-        eventDate: Between(startDate, today),
-      },
-    });
+    const [events, countsByDate] = await Promise.all([
+      this.streakDayEventRepository.find({
+        where: {
+          user: { id: userId },
+          eventDate: Between(startDate, today),
+        },
+      }),
+      this.getJournalCountsByDate(userId, startDate, today),
+    ]);
 
     const eventsByDate = new Map<string, StreakDayEventType>(
       events.map((event) => [
@@ -287,7 +319,11 @@ export class StreaksService {
       const date = new Date(startDate);
       date.setDate(date.getDate() + i);
       const dateStr = date.toISOString().slice(0, 10);
-      history.push({ date: dateStr, type: eventsByDate.get(dateStr) ?? 'empty' });
+      history.push({
+        date: dateStr,
+        type: eventsByDate.get(dateStr) ?? 'empty',
+        count: countsByDate.get(dateStr) ?? 0,
+      });
     }
 
     return history;
@@ -332,12 +368,15 @@ export class StreaksService {
       endDate = today;
     }
 
-    const events = await this.streakDayEventRepository.find({
-      where: {
-        user: { id: userId },
-        eventDate: Between(startDate, endDate),
-      },
-    });
+    const [events, countsByDate] = await Promise.all([
+      this.streakDayEventRepository.find({
+        where: {
+          user: { id: userId },
+          eventDate: Between(startDate, endDate),
+        },
+      }),
+      this.getJournalCountsByDate(userId, startDate, endDate),
+    ]);
 
     const eventsByDate = new Map<string, StreakDayEventType>(
       events.map((event) => [
@@ -352,7 +391,11 @@ export class StreaksService {
       const date = new Date(startDate);
       date.setDate(date.getDate() + i);
       const dateStr = date.toISOString().slice(0, 10);
-      history.push({ date: dateStr, type: eventsByDate.get(dateStr) ?? 'empty' });
+      history.push({
+        date: dateStr,
+        type: eventsByDate.get(dateStr) ?? 'empty',
+        count: countsByDate.get(dateStr) ?? 0,
+      });
     }
 
     return history;

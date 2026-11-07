@@ -9,4 +9,7 @@ export class StreakDayEventDto {
     enum: ['empty', 'active', 'frozen'],
   })
   type: 'empty' | 'active' | 'frozen';
+
+  @ApiProperty({ description: 'Number of journals whose journal_date is this day', example: 5 })
+  count: number;
 }

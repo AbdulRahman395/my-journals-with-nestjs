@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { FileUpload } from '../common/types/file.types';
@@ -101,10 +101,13 @@ export class JournalsService {
     page: number = 1,
     limit: number = 10,
     search?: string,
+    mood?: string,
   ) {
-    // First, get all journals for the user (without search filter for now)
+    const moodFilter = this.parseMood(mood);
+
+    // Get all journals for the user (mood is filtered in the DB; search runs in memory because title/content are encrypted)
     const allJournals = await this.journalRepository.find({
-      where: { user_id: userId },
+      where: moodFilter ? { user_id: userId, mood: moodFilter } : { user_id: userId },
       relations: ['media'],
       order: { journal_date: 'DESC', created_at: 'DESC' },
     });
@@ -158,6 +161,23 @@ export class JournalsService {
     };
 
     return createPaginationResponse(result);
+  }
+
+  /**
+   * Match a mood query value to the Mood enum, ignoring case.
+   * Returns undefined when no mood was given; throws 400 for an unknown mood.
+   */
+  private parseMood(mood?: string): Mood | undefined {
+    if (mood === undefined || mood.trim() === '') return undefined;
+    const match = Object.values(Mood).find(
+      (value) => value.toLowerCase() === mood.trim().toLowerCase(),
+    );
+    if (!match) {
+      throw new BadRequestException(
+        `Invalid mood "${mood}". Valid values: ${Object.values(Mood).join(', ')}`,
+      );
+    }
+    return match;
   }
 
   async findOne(id: number, userId: number) {

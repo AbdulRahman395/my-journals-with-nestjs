@@ -14,11 +14,12 @@ import {
   Query,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JournalsService } from './journals.service';
 import { CreateJournalDto } from './dto/create-journal.dto';
 import { UpdateJournalDto } from './dto/update-journal.dto';
 import { JournalResponseDto } from './dto/journal-response.dto';
+import { Mood } from './entities/journal.entity';
 import { User } from '../users/entities/user.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { FileUpload } from '../common/types/file.types';
@@ -71,13 +72,19 @@ export class JournalsController {
       }
     }
   })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'mood', required: false, enum: Mood, description: 'Only return journals with this mood (case-insensitive)' })
+  @ApiResponse({ status: 400, description: 'Invalid mood value' })
   async findAll(
     @CurrentUser() user: User,
     @Query('page') page = 1,
     @Query('limit') limit = 10,
     @Query('search') search?: string,
+    @Query('mood') mood?: string,
   ) {
-    return this.journalsService.findAll(Number(user.id), Number(page), Number(limit), search);
+    return this.journalsService.findAll(Number(user.id), Number(page), Number(limit), search, mood);
   }
 
   @Get(':id')

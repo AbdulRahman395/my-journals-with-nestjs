@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { Journal } from '../journals/entities/journal.entity';
 import { StreaksService } from './streaks.service';
 import { StreaksController } from './streaks.controller';
 import { UserStreak } from './entities/user-streak.entity';
@@ -7,7 +8,7 @@ import { StreakDayEvent } from './entities/streak-day-event.entity';
 import { UserProfile } from 'src/profiles/entities/user-profile.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UserStreak, StreakDayEvent, UserProfile])],
+  imports: [TypeOrmModule.forFeature([UserStreak, StreakDayEvent, UserProfile, Journal])],
   controllers: [StreaksController],
   providers: [StreaksService],
   exports: [StreaksService],
